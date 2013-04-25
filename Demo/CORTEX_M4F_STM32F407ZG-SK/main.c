@@ -149,67 +149,8 @@
  * semaphore again.
  */
 
-/* Kernel includes. */
-#include "FreeRTOS.h"
-#include "task.h"
-#include "timers.h"
-#include "semphr.h"
+#include "main.h"
 
-/* Demo application includes. */
-#include "partest.h"
-#include "flash.h"
-#include "flop.h"
-#include "integer.h"
-#include "PollQ.h"
-#include "semtest.h"
-#include "dynamic.h"
-#include "BlockQ.h"
-#include "blocktim.h"
-#include "countsem.h"
-#include "GenQTest.h"
-#include "recmutex.h"
-#include "death.h"
-
-/* Hardware and starter kit includes. */
-#include "arm_comm.h"
-#include "stm32f4_discovery.h"
-#include "stm32f4xx.h"
-#include "stm32f4xx_conf.h"
-
-#include "debug.h"
-
-#include "EncoderSensor.h"
-
-/* Priorities for the demo application tasks. */
-#define mainFLASH_TASK_PRIORITY				( tskIDLE_PRIORITY + 1UL )
-#define mainQUEUE_POLL_PRIORITY				( tskIDLE_PRIORITY + 2UL )
-#define mainSEM_TEST_PRIORITY				( tskIDLE_PRIORITY + 1UL )
-#define mainBLOCK_Q_PRIORITY				( tskIDLE_PRIORITY + 2UL )
-#define mainCREATOR_TASK_PRIORITY			( tskIDLE_PRIORITY + 3UL )
-#define mainFLOP_TASK_PRIORITY				( tskIDLE_PRIORITY )
-
-/* The LED used by the check timer. */
-#define mainCHECK_LED 						( 3UL )
-
-/* A block time of zero simply means "don't block". */
-#define mainDONT_BLOCK						( 0UL )
-
-/* The period after which the check timer will expire, in ms, provided no errors
-have been reported by any of the standard demo tasks.  ms are converted to the
-equivalent in ticks using the portTICK_RATE_MS constant. */
-#define mainCHECK_TIMER_PERIOD_MS			( 3000UL / portTICK_RATE_MS )
-
-/* The period at which the check timer will expire, in ms, if an error has been
-reported in one of the standard demo tasks.  ms are converted to the equivalent
-in ticks using the portTICK_RATE_MS constant. */
-#define mainERROR_CHECK_TIMER_PERIOD_MS 	( 200UL / portTICK_RATE_MS )
-
-/* Set mainCREATE_SIMPLE_LED_FLASHER_DEMO_ONLY to 1 to create a simple demo.
-Set mainCREATE_SIMPLE_LED_FLASHER_DEMO_ONLY to 0 to create a much more
-comprehensive test application.  See the comments at the top of this file, and
-the documentation page on the http://www.FreeRTOS.org web site for more
-information. */
-#define mainCREATE_SIMPLE_LED_FLASHER_DEMO_ONLY		1
 
 /*-----------------------------------------------------------*/
 
@@ -296,10 +237,13 @@ int main(void)
 	tasks are only created if mainCREATE_SIMPLE_LED_FLASHER_DEMO_ONLY is set to
 	0 (at the top of this file).  See the comments at the top of this file for
 	more information. */
-	vStartLEDFlashTasks( mainFLASH_TASK_PRIORITY + 1 );
+	vStartLEDFlashTasks( mainFLASH_TASK_PRIORITY + 3 );
         
-        xTaskCreate( vEncoderSensorRefershTask, ( signed char * ) "Ecdr", configMINIMAL_STACK_SIZE, NULL, mainFLASH_TASK_PRIORITY, NULL );
+        xTaskCreate( vEncoderSensorRefershTask, ( signed char * ) "Encoder", configMINIMAL_STACK_SIZE, NULL, mainFLASH_TASK_PRIORITY + 1, NULL );
+        
+        xTaskCreate( vCANSendTask, ( signed char * ) "CanSend", configMINIMAL_STACK_SIZE, NULL, mainFLASH_TASK_PRIORITY + 2, NULL );
 
+        
 	/* The following function will only create more tasks and timers if
 	mainCREATE_SIMPLE_LED_FLASHER_DEMO_ONLY is set to 0 (at the top of this
 	file).  See the comments at the top of this file for more information. */
@@ -448,6 +392,9 @@ static void prvSetupHardware( void )
         
         /* Setup the EncoderSensor Interface. */
 	vEncoderSensorInitialise();
+        
+        /* Setup the CAN Interface. */
+	vCAN_Config_Initialise();
 	
 	/* Configure the button input.  This configures the interrupt to use the
 	lowest interrupt priority, so it is ok to use the ISR safe FreeRTOS API

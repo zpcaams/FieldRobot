@@ -1085,6 +1085,9 @@
   <group>
     <name>User</name>
     <file>
+      <name>$PROJ_DIR$\User\can_usr.c</name>
+    </file>
+    <file>
       <name>$PROJ_DIR$\User\debug.c</name>
     </file>
     <file>

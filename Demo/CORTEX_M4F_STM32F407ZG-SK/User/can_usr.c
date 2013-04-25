@@ -26,7 +26,7 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
-#include "can.h"
+#include "can_usr.h"
 
 /** @addtogroup STM32F4xx_StdPeriph_Examples
   * @{
@@ -49,8 +49,7 @@ CanTxMsg TxMessage;
 uint8_t ubKeyNumber = 0x0;
 
 /* Private function prototypes -----------------------------------------------*/
-static void CAN_Config(void);
-void Init_RxMes(CanRxMsg *RxMessage);
+static void NVIC_Config_CAN(void);
 /* Private functions ---------------------------------------------------------*/
 
 /**
@@ -58,61 +57,49 @@ void Init_RxMes(CanRxMsg *RxMessage);
   * @param  None
   * @retval None
   */
-//int main(void)
-//{
-//  /*!< At this stage the microcontroller clock setting is already configured, 
-//       this is done through SystemInit() function which is called from startup
-//       files (startup_stm32f40xx.s/startup_stm32f427x.s) before to branch to 
-//       application main. 
-//       To reconfigure the default setting of SystemInit() function, refer to
-//       system_stm32f4xx.c file
-//     */     
-//       
-//  /* NVIC configuration */
-//  NVIC_Config();
-//
-//  /* Configures LED 1..4 */
-//  STM_EVAL_LEDInit(LED1);
-//  STM_EVAL_LEDInit(LED2);
-//  STM_EVAL_LEDInit(LED3);
-//  STM_EVAL_LEDInit(LED4);
-//  
-//  /* Configure Push button key */
-//  STM_EVAL_PBInit(BUTTON_KEY, BUTTON_MODE_GPIO); 
-//   
-//  /* CAN configuration */
-//  CAN_Config();
-//  
-//  /* Infinite loop */
-//  while(1)
-//  {
-//    while(STM_EVAL_PBGetState(BUTTON_KEY) == KEY_PRESSED)
-//    {
-//      if(ubKeyNumber == 0x4) 
-//      {
-//        ubKeyNumber = 0x00;
-//      }
-//      else
-//      {
-//        LED_Display(++ubKeyNumber);
-//        TxMessage.Data[0] = ubKeyNumber;
-//        CAN_Transmit(CANx, &TxMessage);
-//        Delay();
-//        
-//        while(STM_EVAL_PBGetState(BUTTON_KEY) != KEY_NOT_PRESSED)
-//        {
-//        }
-//      }
-//    }
-//  }
-//}
+/**
+  * @brief Send a CAN message.
+  *        This is a freertos task.
+  * @param  pvParameters: task parameters.
+  * @retval None
+  */
+void vCANSendTask( void *pvParameters )
+{
+    portTickType xLastWakeTime;
+    uint8_t ubCounter = 0;
+
+    /* The parameters are not used. */
+    ( void ) pvParameters;
+
+    /* We need to initialise xLastWakeTime prior to the first call to 
+    vTaskDelayUntil(). */
+    xLastWakeTime = xTaskGetTickCount();
+
+    for(;;)
+    {
+        /* Transmit Structure preparation */
+        TxMessage.StdId = 0x321;
+//        TxMessage.ExtId = 0x01;
+        TxMessage.RTR = CAN_RTR_DATA;
+        TxMessage.IDE = CAN_ID_STD;
+        TxMessage.DLC = 8;
+        for (ubCounter = 0; ubCounter < 8; ubCounter++)
+        {
+          TxMessage.Data[ubCounter] = ubCounter + 0x55;
+        }
+        CAN_Transmit(CANx, &TxMessage);
+
+        /* Run this task every 100 ms */
+        vTaskDelayUntil( &xLastWakeTime, 2000 / portTICK_RATE_MS );
+    }
+}
 
 /**
   * @brief  Configures the CAN.
   * @param  None
   * @retval None
   */
-static void CAN_Config(void)
+void vCAN_Config_Initialise(void)
 {
   GPIO_InitTypeDef  GPIO_InitStructure;
   
@@ -139,6 +126,7 @@ static void CAN_Config(void)
   
   /* CAN register init */
   CAN_DeInit(CANx);
+  CAN_StructInit(&CAN_InitStructure);
 
   /* CAN cell init */
   CAN_InitStructure.CAN_TTCM = DISABLE;
@@ -150,8 +138,8 @@ static void CAN_Config(void)
   CAN_InitStructure.CAN_Mode = CAN_Mode_Normal;
   CAN_InitStructure.CAN_SJW = CAN_SJW_1tq;
     
-  /* CAN Baudrate = 1 MBps (CAN clocked at 30 MHz) */
-  CAN_InitStructure.CAN_BS1 = CAN_BS1_6tq;
+  /* CAN Baudrate = 1 MBps (CAN clocked at 40 MHz) */
+  CAN_InitStructure.CAN_BS1 = CAN_BS1_11tq;
   CAN_InitStructure.CAN_BS2 = CAN_BS2_8tq;
   CAN_InitStructure.CAN_Prescaler = 2;
   CAN_Init(CANx, &CAN_InitStructure);
@@ -172,15 +160,10 @@ static void CAN_Config(void)
   CAN_FilterInitStructure.CAN_FilterActivation = ENABLE;
   CAN_FilterInit(&CAN_FilterInitStructure);
   
-  /* Transmit Structure preparation */
-  TxMessage.StdId = 0x321;
-  TxMessage.ExtId = 0x01;
-  TxMessage.RTR = CAN_RTR_DATA;
-  TxMessage.IDE = CAN_ID_STD;
-  TxMessage.DLC = 1;
-  
   /* Enable FIFO 0 message pending Interrupt */
   CAN_ITConfig(CANx, CAN_IT_FMP0, ENABLE);
+  
+  NVIC_Config_CAN();
 }
 
 /**
@@ -221,55 +204,6 @@ void Init_RxMes(CanRxMsg *RxMessage)
   for (ubCounter = 0; ubCounter < 8; ubCounter++)
   {
     RxMessage->Data[ubCounter] = 0x00;
-  }
-}
-
-/**
-  * @brief  Turn ON/OFF the dedicated led
-  * @param  Ledstatus: Led number from 0 to 3.
-  * @retval None
-  */
-void LED_Display(uint8_t Ledstatus)
-{
-  /* Turn off all leds */
-  STM_EVAL_LEDOff(LED1);
-  STM_EVAL_LEDOff(LED2);
-  STM_EVAL_LEDOff(LED3);
-  STM_EVAL_LEDOff(LED4);
-  
-  switch(Ledstatus)
-  {
-    case(1): 
-      STM_EVAL_LEDOn(LED1);
-      break;
-   
-    case(2): 
-      STM_EVAL_LEDOn(LED2);
-      break;
- 
-    case(3): 
-      STM_EVAL_LEDOn(LED3);
-      break;
-
-    case(4): 
-      STM_EVAL_LEDOn(LED4);
-      break;
-    default:
-      break;
-  }
-}
-
-/**
-  * @brief  Delay
-  * @param  None
-  * @retval None
-  */
-static void Delay(void)
-{
-  uint16_t nTime = 0x0000;
-
-  for(nTime = 0; nTime <0xFFF; nTime++)
-  {
   }
 }
 

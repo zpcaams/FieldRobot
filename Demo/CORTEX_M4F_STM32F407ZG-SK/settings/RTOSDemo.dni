@@ -9,7 +9,7 @@ TriggerName=main
 LimitSize=0
 ByteLimit=50
 [DebugChecksum]
-Checksum=-113461682
+Checksum=-937676471
 [Exceptions]
 StopOnUncaught=_ 0
 StopOnThrow=_ 0
@@ -88,6 +88,10 @@ GraphEnabled=0
 ShowTimeLog=1
 ShowTimeSum=1
 SumSortOrder=0
+[Disassemble mode]
+mode=0
+[Breakpoints2]
+Count=0
 [Log file]
 LoggingEnabled=_ 0
 LogFile=_ ""
@@ -95,6 +99,9 @@ Category=_ 0
 [TermIOLog]
 LoggingEnabled=_ 0
 LogFile=_ ""
+[Aliases]
+Count=0
+SuppressDialog=0
 [Trace2]
 Enabled=0
 ShowSource=0
@@ -115,11 +122,3 @@ Mode=3
 Graph=0
 Symbiont=0
 Exclusions=
-[Disassemble mode]
-mode=0
-[Breakpoints2]
-Bp0=_ 1 "EMUL_CODE" "{$PROJ_DIR$\User\EncoderSensor.c}.155.13" 0 0 1 "" 0 "" 0
-Count=1
-[Aliases]
-Count=0
-SuppressDialog=0

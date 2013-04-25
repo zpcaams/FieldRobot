@@ -18,14 +18,8 @@
 
 /* Includes ------------------------------------------------------------------*/
  #include "stm32f4xx.h"
-   
-/* Kernel includes. */
-#include "FreeRTOS.h"
-#include "task.h"
-#include "timers.h"
-#include "semphr.h"
-	 
-	 
+#include "main.h"
+   	 
 /* EncoderSensor struct */
 typedef struct
 {

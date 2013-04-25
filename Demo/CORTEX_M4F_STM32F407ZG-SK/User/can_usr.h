@@ -1,10 +1,10 @@
 /**
   ******************************************************************************
-  * @file    CAN/CAN_Networking/stm32f4xx_it.h 
+  * @file    can_usr.h 
   * @author  MCD Application Team
   * @version V1.1.0
   * @date    18-January-2013
-  * @brief   This file contains the headers of the interrupt handlers.
+  * @brief   Header for can_usr.c module
   ******************************************************************************
   * @attention
   *
@@ -26,37 +26,54 @@
   */
 
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __STM32F4xx_IT_H
-#define __STM32F4xx_IT_H
+#ifndef __CAN_USR_H
+#define __CAN_USR_H
 
 #ifdef __cplusplus
  extern "C" {
-#endif 
-
+#endif
+   
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx.h"
+#include "main.h"
 
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/
+/* #define USE_CAN1*/
+ #define USE_CAN1
+
+#ifdef  USE_CAN1
+  #define CANx                       CAN1
+  #define CAN_CLK                    RCC_APB1Periph_CAN1
+  #define CAN_RX_PIN                 GPIO_Pin_0
+  #define CAN_TX_PIN                 GPIO_Pin_1
+  #define CAN_GPIO_PORT              GPIOD
+  #define CAN_GPIO_CLK               RCC_AHB1Periph_GPIOD
+  #define CAN_AF_PORT                GPIO_AF_CAN1
+  #define CAN_RX_SOURCE              GPIO_PinSource0
+  #define CAN_TX_SOURCE              GPIO_PinSource1       
+#else /*USE_CAN2*/
+  #define CANx                       CAN2
+  #define CAN_CLK                    (RCC_APB1Periph_CAN1 | RCC_APB1Periph_CAN2)
+  #define CAN_RX_PIN                 GPIO_Pin_5
+  #define CAN_TX_PIN                 GPIO_Pin_13
+  #define CAN_GPIO_PORT              GPIOB
+  #define CAN_GPIO_CLK               RCC_AHB1Periph_GPIOB
+  #define CAN_AF_PORT                GPIO_AF_CAN2
+  #define CAN_RX_SOURCE              GPIO_PinSource5
+  #define CAN_TX_SOURCE              GPIO_PinSource13    
+#endif  /* USE_CAN1 */
+
 /* Exported macro ------------------------------------------------------------*/
 /* Exported functions ------------------------------------------------------- */
-
-void NMI_Handler(void);
-void HardFault_Handler(void);
-void MemManage_Handler(void);
-void BusFault_Handler(void);
-void UsageFault_Handler(void);
-void SVC_Handler(void);
-void DebugMon_Handler(void);
-void PendSV_Handler(void);
-void SysTick_Handler(void);
-void CAN1_RX0_IRQHandler(void);
-void CAN2_RX0_IRQHandler(void);
+void vCAN_Config_Initialise(void);
+void vCANSendTask( void *pvParameters );
+void Init_RxMes(CanRxMsg *RxMessage);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* __STM32F4xx_IT_H */
+#endif /* __CAN_USR_H */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
