@@ -38,7 +38,7 @@ __IO uint32_t  EncoderSensorTimeout = EncoderSensor_FLAG_TIMEOUT;
 /** @defgroup STM32F4_DISCOVERY_EncoderSensor_Private_Variables
   * @{
   */ 
-uint8_t pSpiBuffer[16*2];
+uint8_t EncoderSensorBuffer[16*2];
 
 /**
   * @}
@@ -148,7 +148,7 @@ void vEncoderSensorRefershTask( void *pvParameters )
             /* Read data from spi interface */
             for(i=0;i<(15+1);i++)
             {
-                EncoderSensor_Read(&pSpiBuffer[2*i], i, 2);
+                EncoderSensor_Read(&EncoderSensorBuffer[2*i], i, 2);
             }
 
             /* Run this task every 50 ms */

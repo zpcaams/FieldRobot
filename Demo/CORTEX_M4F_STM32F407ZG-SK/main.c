@@ -221,6 +221,7 @@ static xSemaphoreHandle xTestSemaphore = NULL;
 interrupt. */
 volatile unsigned long ulButtonPressCounts = 0UL;
 
+extern xQueueHandle xCANRcvQueue, xCANTransQueue;
 /*-----------------------------------------------------------*/
 
 int main(void)
@@ -231,17 +232,22 @@ int main(void)
         vDebugInitQueue();
         
         vDebugPrintf("Usart Setup Done!\n");
-
+        
+        /* Creat the queue for CAN */
+        xCANRcvQueue = xQueueCreate( 8, sizeof(CanRxMsg) );
+        xCANTransQueue = xQueueCreate( 5, sizeof(CanTxMsg) );
+        xTaskCreate( CANMsgSendTask, ( signed char * ) "CanSend", configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 3UL), NULL );
+        xTaskCreate( vCANMainTask, ( signed char * ) "CanMain", configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 2UL), NULL );
+       
 	/* Start standard demo/test application flash tasks.  See the comments at
 	the top of this file.  The LED flash tasks are always created.  The other
 	tasks are only created if mainCREATE_SIMPLE_LED_FLASHER_DEMO_ONLY is set to
 	0 (at the top of this file).  See the comments at the top of this file for
 	more information. */
-	vStartLEDFlashTasks( mainFLASH_TASK_PRIORITY + 3 );
+	vStartLEDFlashTasks(tskIDLE_PRIORITY + 1UL);
         
-        xTaskCreate( vEncoderSensorRefershTask, ( signed char * ) "Encoder", configMINIMAL_STACK_SIZE, NULL, mainFLASH_TASK_PRIORITY + 1, NULL );
+        //xTaskCreate( vEncoderSensorRefershTask, ( signed char * ) "Encoder", configMINIMAL_STACK_SIZE, NULL, mainFLASH_TASK_PRIORITY + 1, NULL );
         
-        xTaskCreate( vCANSendTask, ( signed char * ) "CanSend", configMINIMAL_STACK_SIZE, NULL, mainFLASH_TASK_PRIORITY + 2, NULL );
 
         
 	/* The following function will only create more tasks and timers if

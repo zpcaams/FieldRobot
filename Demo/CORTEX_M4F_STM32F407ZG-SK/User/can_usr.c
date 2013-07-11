@@ -26,6 +26,7 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
+#include "main.h"
 #include "can_usr.h"
 
 /** @addtogroup STM32F4xx_StdPeriph_Examples
@@ -45,54 +46,163 @@
 /* Private variables ---------------------------------------------------------*/
 CAN_InitTypeDef        CAN_InitStructure;
 CAN_FilterInitTypeDef  CAN_FilterInitStructure;
-CanTxMsg TxMessage;
-uint8_t ubKeyNumber = 0x0;
+//global CAN transmit/receive buffer
+CanTxMsg CANTxMessage[4];
+CanRxMsg CANRxMessage;
+xQueueHandle xCANRcvQueue, xCANTransQueue;
 
 /* Private function prototypes -----------------------------------------------*/
 static void NVIC_Config_CAN(void);
 /* Private functions ---------------------------------------------------------*/
 
 /**
-  * @brief  Main program.
-  * @param  None
+  * @brief Interrupt service. Reveived the CAN message and sent to queue.
+  * @param  FIFONumber : FIFO0 or FIFO1.
   * @retval None
   */
+void CAN_Msg_Rcvr_from_IRQ (uint8_t FIFONumber)
+{
+portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
+
+    CAN_Receive(CANx, FIFONumber, &CANRxMessage);
+    xQueueSendToBackFromISR( xCANRcvQueue, &CANRxMessage, &xHigherPriorityTaskWoken);
+    portEND_SWITCHING_ISR( xHigherPriorityTaskWoken );
+}
+
 /**
-  * @brief Send a CAN message.
-  *        This is a freertos task.
+  * @brief Send the CAN message if queue is not blocked.
   * @param  pvParameters: task parameters.
   * @retval None
   */
-void vCANSendTask( void *pvParameters )
+void CANMsgSendTask (void *pvParameters)
 {
-    portTickType xLastWakeTime;
-    uint8_t ubCounter = 0;
+uint32_t Status;
+portBASE_TYPE xStatus;
+CanTxMsg CANTxMsgFromQueue;
 
-    /* The parameters are not used. */
-    ( void ) pvParameters;
-
-    /* We need to initialise xLastWakeTime prior to the first call to 
-    vTaskDelayUntil(). */
-    xLastWakeTime = xTaskGetTickCount();
-
-    for(;;)
-    {
-        /* Transmit Structure preparation */
-        TxMessage.StdId = 0x321;
-//        TxMessage.ExtId = 0x01;
-        TxMessage.RTR = CAN_RTR_DATA;
-        TxMessage.IDE = CAN_ID_STD;
-        TxMessage.DLC = 8;
-        for (ubCounter = 0; ubCounter < 8; ubCounter++)
-        {
-          TxMessage.Data[ubCounter] = ubCounter + 0x55;
+    for(;;){
+        xStatus = xQueueReceive(xCANTransQueue, &CANTxMsgFromQueue, portMAX_DELAY);
+        if (xStatus==pdPASS){
+            do{
+                Status = CAN_Transmit(CANx, &CANTxMsgFromQueue);
+            }while(Status == CAN_TxStatus_NoMailBox);
         }
-        CAN_Transmit(CANx, &TxMessage);
-
-        /* Run this task every 100 ms */
-        vTaskDelayUntil( &xLastWakeTime, 2000 / portTICK_RATE_MS );
     }
 }
+
+void SetMotoCurrent ( void ) 
+{
+    uint32_t i;
+    uint32_t DevId=0x7C;
+    uint32_t Status;
+    portBASE_TYPE xStatus;
+    uint8_t RcvrCounter=0;
+    uint8_t TransmitStatus[4]={0, 0, 0, 0};
+    uint8_t RcvrDone=0;
+    /*  TODO
+        calculate the needed current here
+    */
+
+    /*
+        send the message to driver by queue
+    */
+    for (i=0;i<4;i++){
+        CANTxMessage[i].StdId = i+DevId;
+        CANTxMessage[i].RTR = CAN_RTR_DATA;
+        CANTxMessage[i].IDE = CAN_ID_STD;
+        CANTxMessage[i].DLC = 8;
+        CANTxMessage[i].Data[0] = 8;       //len
+        CANTxMessage[i].Data[1] = i+DevId; //id
+        CANTxMessage[i].Data[2] = 0x96;    //func:设定目标电流
+        CANTxMessage[i].Data[3] = 0;       //
+        CANTxMessage[i].Data[4] = 0;       //data:0
+        CANTxMessage[i].Data[5] = 0;       //
+        CANTxMessage[i].Data[6] = 0;       //
+        CANTxMessage[i].Data[7] = 0;       //
+        xStatus = xQueueSendToBack(xCANTransQueue, &CANTxMessage[i], 0);
+        if (xStatus!=pdPASS){
+        //error, queue full
+        }
+    }
+    
+    /*
+        wait for return
+    */    
+    do{
+        xStatus = xQueueReceive( xCANRcvQueue, &CANRxMessage, 5/portTICK_RATE_MS );
+        if (Status==pdTRUE){
+            RcvrCounter++;
+        }
+        if ((CANRxMessage.StdId >= 0)&&(CANRxMessage.StdId <= 3)){
+            if ((CANRxMessage.Data[0]==6)&&(CANRxMessage.Data[2]==0x96)&&(CANRxMessage.Data[3]==0x80)&&(CANRxMessage.Data[4]==0)){
+                TransmitStatus[CANRxMessage.StdId] = 1;
+            }else{
+                //TODO return message Error
+            }
+                 
+        }else{
+            //TODO Id Error
+        }
+        if(RcvrCounter==4){
+            if((TransmitStatus[0])&&(TransmitStatus[1])&&(TransmitStatus[2])&&(TransmitStatus[3])){
+                RcvrDone=1;
+            }else{
+                //TODO if receive more 4 times but some driver not got return.
+            }
+        }
+    }while(!RcvrDone);
+                 
+    /*
+        all 4 message sent and got return
+    */
+}
+/**
+  * @brief  Main CAN Task, run every 10 ms.
+            small tasks
+            1. give the wheel motor current
+            2. get the wheel motor speed
+            3. give the Steering motor position
+            4. get the Steering motor position
+            5. give the Motorized Faders voltage
+            6. get the Motorized Faders position
+
+  * @param  None
+  * @retval None
+  */
+void vCANMainTask( void *pvParameters )
+{
+    portTickType xLastWakeTime;
+    uint8_t TaskCounter = 0;
+
+    xLastWakeTime = xTaskGetTickCount();
+
+    for( ; ; )
+    {
+        switch (TaskCounter){
+            case 0:{
+                SetMotoCurrent();
+                break;
+            }
+            case 1: {
+                break;
+            }
+            default:{
+                break;
+            }
+        }
+        
+        if (TaskCounter == 10){
+            TaskCounter = 0;
+        } else {
+            TaskCounter++;
+        }
+        
+    /* Run this task every 10 ms */
+    vTaskDelayUntil( &xLastWakeTime, 100 / portTICK_RATE_MS );
+    
+    }
+}
+
 
 /**
   * @brief  Configures the CAN.
@@ -137,19 +247,16 @@ void vCAN_Config_Initialise(void)
   CAN_InitStructure.CAN_TXFP = DISABLE;
   CAN_InitStructure.CAN_Mode = CAN_Mode_Normal;
   CAN_InitStructure.CAN_SJW = CAN_SJW_1tq;
-    
-  /* CAN Baudrate = 1 MBps (CAN clocked at 40 MHz) */
-  CAN_InitStructure.CAN_BS1 = CAN_BS1_11tq;
-  CAN_InitStructure.CAN_BS2 = CAN_BS2_8tq;
-  CAN_InitStructure.CAN_Prescaler = 2;
+
+  /* CAN Baudrate = PCLK1/((1+CAN_BS1+CAN_BS2)*CAN_Prescaler) 
+                  = 1MBps (CAN clocked at 40 MHz) */
+  CAN_InitStructure.CAN_BS1 = CAN_BS1_5tq;
+  CAN_InitStructure.CAN_BS2 = CAN_BS2_4tq;
+  CAN_InitStructure.CAN_Prescaler = 4;
   CAN_Init(CANx, &CAN_InitStructure);
 
   /* CAN filter init */
-#ifdef  USE_CAN1
   CAN_FilterInitStructure.CAN_FilterNumber = 0;
-#else /* USE_CAN2 */
-  CAN_FilterInitStructure.CAN_FilterNumber = 14;
-#endif  /* USE_CAN1 */
   CAN_FilterInitStructure.CAN_FilterMode = CAN_FilterMode_IdMask;
   CAN_FilterInitStructure.CAN_FilterScale = CAN_FilterScale_32bit;
   CAN_FilterInitStructure.CAN_FilterIdHigh = 0x0000;
@@ -174,13 +281,7 @@ void vCAN_Config_Initialise(void)
 static void NVIC_Config_CAN(void)
 {
   NVIC_InitTypeDef  NVIC_InitStructure;
-
-#ifdef  USE_CAN1 
   NVIC_InitStructure.NVIC_IRQChannel = CAN1_RX0_IRQn;
-#else  /* USE_CAN2 */
-  NVIC_InitStructure.NVIC_IRQChannel = CAN2_RX0_IRQn;
-#endif /* USE_CAN1 */
-
   NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY - 1;
   NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x0;
   NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;

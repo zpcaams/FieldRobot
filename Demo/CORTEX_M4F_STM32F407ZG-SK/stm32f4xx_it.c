@@ -30,6 +30,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_it.h"
 #include "main.h"
+#include "can_usr.h"
 
 /** @addtogroup STM32F4xx_StdPeriph_Examples
   * @{
@@ -43,8 +44,6 @@
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
-CanRxMsg RxMessage;
-extern uint8_t ubKeyNumber;
 
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
@@ -165,13 +164,7 @@ __weak void SysTick_Handler(void)
   */
 void CAN1_RX0_IRQHandler(void)
 {
-//  CAN_Receive(CAN1, CAN_FIFO0, &RxMessage);
-//  
-//  if ((RxMessage.StdId == 0x321)&&(RxMessage.IDE == CAN_ID_STD) && (RxMessage.DLC == 1))
-//  {
-//    LED_Display(RxMessage.Data[0]);
-//    ubKeyNumber = RxMessage.Data[0];
-//  }
+    CAN_Msg_Rcvr_from_IRQ(CAN_FIFO0);
 }
 #endif  /* USE_CAN1 */
 

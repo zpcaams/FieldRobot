@@ -40,7 +40,7 @@
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/
 /* #define USE_CAN1*/
- #define USE_CAN1
+#define USE_CAN1
 
 #ifdef  USE_CAN1
   #define CANx                       CAN1
@@ -66,9 +66,11 @@
 
 /* Exported macro ------------------------------------------------------------*/
 /* Exported functions ------------------------------------------------------- */
+void CAN_Msg_Rcvr_from_IRQ(uint8_t FIFONumber);
 void vCAN_Config_Initialise(void);
-void vCANSendTask( void *pvParameters );
+void vCANMainTask( void *pvParameters );
 void Init_RxMes(CanRxMsg *RxMessage);
+void CANMsgSendTask (void *pvParameters);
 
 #ifdef __cplusplus
 }
