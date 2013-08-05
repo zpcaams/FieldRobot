@@ -38,7 +38,6 @@ __IO uint32_t  EncoderSensorTimeout = EncoderSensor_FLAG_TIMEOUT;
 /** @defgroup STM32F4_DISCOVERY_EncoderSensor_Private_Variables
   * @{
   */ 
-uint8_t EncoderSensorBuffer[16*2];
 
 /**
   * @}
@@ -48,6 +47,7 @@ uint8_t EncoderSensorBuffer[16*2];
   * @{
   */
 static uint8_t EncoderSensor_SendByte(uint8_t byte);
+static void EncoderSensor_Read(uint8_t* pBuffer, uint8_t ReadAddr, uint16_t NumByteToRead);
 /**
   * @}
   */
@@ -55,7 +55,6 @@ static uint8_t EncoderSensor_SendByte(uint8_t byte);
 /** @defgroup STM32F4_DISCOVERY_EncoderSensor_Private_Functions
   * @{
   */
-
 
 /**
   * @brief  Set EncoderSensor Initialization.
@@ -83,7 +82,7 @@ void vEncoderSensorInitialise(void)
   GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
   GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
   GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_NOPULL;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_25MHz;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
 
   /* SPI SCK pin configuration */
   GPIO_InitStructure.GPIO_Pin = EncoderSensor_SPI_SCK_PIN;
@@ -125,35 +124,47 @@ void vEncoderSensorInitialise(void)
 }
 
 /**
-  * @brief Read the abs encoder information and 2.4G channel signal via SPI interface.
-  *        This is a freertos task.
+  * @brief Read the abs encoder information and 2.4G signal via SPI interface.
+  *         Each time(10ms) only one channel data is read.
+  *         For total 16 data takes 160ms to refersh them all.
+  *         Channel 0~3 Steering Motor Position
+  *         Channel 4~7 Couplings Position
+  *         Channel 8~15 2.4G signal
   * @param  vEncoderSensorRefersh: task name. 
   *         pvParameters: task parameters.
   * @retval None
   */
 void vEncoderSensorRefershTask( void *pvParameters )
 {
-        portTickType xLastWakeTime;
-	uint8_t i = 0;
+    portTickType xLastWakeTime;
+    uint8_t i = 0;
+    uint8_t SpiBuffer[2];
+    uint16_t  SpiBuffer16;
 
-	/* The parameters are not used. */
-	( void ) pvParameters;
+    xLastWakeTime = xTaskGetTickCount();
 
-	/* We need to initialise xLastWakeTime prior to the first call to 
-	vTaskDelayUntil(). */
-	xLastWakeTime = xTaskGetTickCount();
-
-	for(;;)
-	{       
-            /* Read data from spi interface */
-            for(i=0;i<(15+1);i++)
-            {
-                EncoderSensor_Read(&EncoderSensorBuffer[2*i], i, 2);
-            }
-
-            /* Run this task every 50 ms */
-            vTaskDelayUntil( &xLastWakeTime, 50 / portTICK_RATE_MS );
-	}
+    for(;;)
+    {       
+      
+      if (i<15) {
+          i++;
+      } else {
+          i = 0;
+      }
+      
+      EncoderSensor_Read(SpiBuffer, i, 2);
+      SpiBuffer16 = (SpiBuffer[0]<<8) + SpiBuffer[1];
+      
+      if (i < 5){
+          SetSteeringMotorPosition((i), SpiBuffer16);
+      } else if (i < 8){
+          SetCouplingsPosition((i-4), SpiBuffer16);
+      } else {
+          SetRemoteControl((i-8), SpiBuffer16);
+      }
+        
+      vTaskDelayUntil( &xLastWakeTime, 10 / portTICK_RATE_MS );
+    }
 } 
 
 /**
@@ -163,7 +174,7 @@ void vEncoderSensorRefershTask( void *pvParameters )
   * @param  NumByteToRead : number of bytes to read from the EncoderSensor.
   * @retval None
   */
-void EncoderSensor_Read(uint8_t* pBuffer, uint8_t ReadAddr, uint16_t NumByteToRead)
+static void EncoderSensor_Read(uint8_t* pBuffer, uint8_t ReadAddr, uint16_t NumByteToRead)
 {  
   /* Set chip select Low at the start of the transmission */
   EncoderSensor_CS_LOW();
