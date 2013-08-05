@@ -7,17 +7,7 @@
 #include <stdarg.h>
 #include <ctype.h>
 
-#include "FreeRTOS.h"
-#include "task.h"
-#include "queue.h"
-#include "semphr.h"
-
-#include "stm32f4xx.h"
-#include "stm32f4_discovery.h"
-
 #include "debug.h"
-//#include "utils.h"
-//#include "mems.h"
 
 // Private functions.
 void vNum2String( char *s, uint8_t *pPos, uint32_t u32Number, uint8_t u8Base);
@@ -27,9 +17,68 @@ void vNum2String( char *s, uint8_t *pPos, uint32_t u32Number, uint8_t u8Base);
 xQueueHandle xDebugQueue;
 
 extern xTaskHandle hDebugTask;
-//extern xTaskHandle hTimeTask;
-//extern xTaskHandle hLCDTask;
 
+
+/**
+ * @brief Definition for Debug port, connected to USART3
+ */ 
+USART_TypeDef* COM_USART = USART3; 
+USART_InitTypeDef USART_InitStructure;
+
+/**
+  * @brief  Configures the USART Peripheral as Debug Output.
+  * @param  None
+  * @retval None
+  */
+void vDebugInitialise(void)
+{
+  GPIO_InitTypeDef GPIO_InitStructure;
+  
+  /* USART GPIOs configuration **************************************************/
+  /* Enable GPIO clock */
+  RCC_AHB1PeriphClockCmd(USART_GPIO_CLK, ENABLE);
+
+  /* Connect UART pins to AF */
+  GPIO_PinAFConfig(USART_GPIO_PORT, USART_TX_SOURCE, USART_AF_PORT);
+  GPIO_PinAFConfig(USART_GPIO_PORT, USART_RX_SOURCE, USART_AF_PORT);
+  
+  /* Configure USART RX and TX pins */
+  GPIO_InitStructure.GPIO_Pin = USART_TX_PIN | USART_RX_PIN;
+  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF;
+  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
+  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
+  GPIO_Init(USART_GPIO_PORT, &GPIO_InitStructure);
+
+  /* USART configuration ********************************************************/
+  /* Enable UART clock */
+  RCC_APB1PeriphClockCmd(USART_CLK, ENABLE);
+  
+  /* USART register init */
+  USART_DeInit(USARTx);
+  USART_StructInit(&USART_InitStructure);
+  
+  /* USARTx configured as follow:
+        - BaudRate = 115200 baud  
+        - Word Length = 8 Bits
+        - One Stop Bit
+        - No parity
+        - Hardware flow control disabled (RTS and CTS signals)
+        - Receive and transmit enabled
+  */
+  USART_InitStructure.USART_BaudRate = 115200;
+  USART_InitStructure.USART_WordLength = USART_WordLength_8b;
+  USART_InitStructure.USART_StopBits = USART_StopBits_1;
+  USART_InitStructure.USART_Parity = USART_Parity_No;
+  USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
+  USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
+  
+  /* USART configuration init*/
+  USART_Init(USARTx, &USART_InitStructure);
+    
+  /* Enable USART */
+  USART_Cmd(USARTx, ENABLE);
+}
 
 // ============================================================================
 void vDebugInitQueue( void ) 
@@ -52,13 +101,13 @@ portTASK_FUNCTION( vDebugTask, pvParameters )
 	for(;;) {
 		// As long as there are characters in the queue fifo this code should
 		// pop them out and send them as quick as possible out the UART.
-		if( USART_GetFlagStatus( USART2, USART_FLAG_TXE ) ) {
+		if( USART_GetFlagStatus( COM_USART, USART_FLAG_TXE ) ) {
 			// We don't want to block forever - need to check on Rx too.
 			xStatus = xQueueReceive( xDebugQueue, &ch, 10 / portTICK_RATE_MS );
-			if( xStatus == pdPASS ) USART_SendData( USART2, ch );
+			if( xStatus == pdPASS ) USART_SendData( COM_USART, ch );
 		}
-		if ( USART_GetFlagStatus( USART2, USART_FLAG_RXNE ) ) {
-			ch = USART_ReceiveData( USART2 );
+		if ( USART_GetFlagStatus( COM_USART, USART_FLAG_RXNE ) ) {
+			ch = USART_ReceiveData( COM_USART );
 			// Handle Debug Console Commands Here.
 			switch ( ch ) {
 
