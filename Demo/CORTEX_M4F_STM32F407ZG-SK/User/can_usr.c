@@ -26,7 +26,6 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
-#include "main.h"
 #include "can_usr.h"
 
 /** @addtogroup STM32F4xx_StdPeriph_Examples
@@ -209,7 +208,7 @@ void vCANMainTask( void *pvParameters )
   * @param  None
   * @retval None
   */
-void vCAN_Config_Initialise(void)
+void vCANConfigInitialise(void)
 {
   GPIO_InitTypeDef  GPIO_InitStructure;
   

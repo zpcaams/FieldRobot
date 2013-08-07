@@ -229,26 +229,16 @@ int main(void)
 	/* Configure the hardware ready to run the test. */
 	prvSetupHardware();
 	
-        vDebugInitQueue();
+  vDebugInitQueue();
+  
+  /* Creat the queue for CAN */
+  //xCANRcvQueue = xQueueCreate( 8, sizeof(CanRxMsg) );
+  //xCANTransQueue = xQueueCreate( 5, sizeof(CanTxMsg) );
+  //xTaskCreate( CANMsgSendTask, ( signed char * ) "CanSend", configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 3UL), NULL );
+  //xTaskCreate( vCANMainTask, ( signed char * ) "CanMain", configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 2UL), NULL );
         
-        vDebugPrintf("Usart Setup Done!\n");
-        
-        /* Creat the queue for CAN */
-        xCANRcvQueue = xQueueCreate( 8, sizeof(CanRxMsg) );
-        xCANTransQueue = xQueueCreate( 5, sizeof(CanTxMsg) );
-        xTaskCreate( CANMsgSendTask, ( signed char * ) "CanSend", configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 3UL), NULL );
-        xTaskCreate( vCANMainTask, ( signed char * ) "CanMain", configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 2UL), NULL );
-       
-	/* Start standard demo/test application flash tasks.  See the comments at
-	the top of this file.  The LED flash tasks are always created.  The other
-	tasks are only created if mainCREATE_SIMPLE_LED_FLASHER_DEMO_ONLY is set to
-	0 (at the top of this file).  See the comments at the top of this file for
-	more information. */
-	vStartLEDFlashTasks(tskIDLE_PRIORITY + 1UL);
-        
-        //xTaskCreate( vEncoderSensorRefershTask, ( signed char * ) "Encoder", configMINIMAL_STACK_SIZE, NULL, mainFLASH_TASK_PRIORITY + 1, NULL );
-        
-
+  xTaskCreate( vEncoderSensorRefershTask, ( signed char * ) "Encoder", configMINIMAL_STACK_SIZE, NULL, EncoderSensorRefersh_TASK_PRIORITY, NULL );
+  xTaskCreate( vUsartTask, ( signed char * ) "Usart", configMINIMAL_STACK_SIZE, NULL, portTASK_FUNCTION_TASK_PRIORITY, NULL );
         
 	/* The following function will only create more tasks and timers if
 	mainCREATE_SIMPLE_LED_FLASHER_DEMO_ONLY is set to 0 (at the top of this
@@ -396,11 +386,14 @@ static void prvSetupHardware( void )
 	/* Setup the LED outputs. */
 	vParTestInitialise();
         
-        /* Setup the EncoderSensor Interface. */
+	/* Setup the Usart outputs. */
+  vDebugInitialise();
+        
+  /* Setup the EncoderSensor Interface. */
 	vEncoderSensorInitialise();
         
-        /* Setup the CAN Interface. */
-	vCAN_Config_Initialise();
+  /* Setup the CAN Interface. */
+	vCANConfigInitialise();
 	
 	/* Configure the button input.  This configures the interrupt to use the
 	lowest interrupt priority, so it is ok to use the ISR safe FreeRTOS API

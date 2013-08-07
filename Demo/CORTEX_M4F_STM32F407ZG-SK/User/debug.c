@@ -18,7 +18,6 @@ xQueueHandle xDebugQueue;
 
 extern xTaskHandle hDebugTask;
 
-
 /**
  * @brief Definition for Debug port, connected to USART3
  */ 
@@ -87,7 +86,7 @@ void vDebugInitQueue( void )
 }
 
 // ============================================================================
-portTASK_FUNCTION( vDebugTask, pvParameters ) 
+void vUsartTask( void *pvParameters ) 
 {
 	char ch;
 	portBASE_TYPE xStatus;
@@ -113,48 +112,8 @@ portTASK_FUNCTION( vDebugTask, pvParameters )
 
 			// Alphabetical list of commands the console debugger responds to.
 
-			case 'm':
-				vDebugPrintf( "Mems dump Stopped.\r\n");
-				//vSetMemsDump( false );
+			case '0':
 				break;
-			case 'M':
-				vDebugPrintf( "Mems dump Started.\r\n");
-				//vSetMemsDump( true );
-				break;
-
-			case 'a':
-				vDebugPrintf( "AtoD dump Stopped.\r\n");
-				//vSetAtoDDump( FALSE );
-				break;
-			case 'A':
-				vDebugPrintf( "AtoD dump Started.\r\n");
-				//vSetAtoDDump( TRUE );
-				break;
-
-			case 'l':
-				vDebugPrintf( "Loop Count Stopped.\r\n");
-				//vSetCntLoops( FALSE );
-				break;
-			case 'L':
-				vDebugPrintf( "Loop Count Started.\r\n");
-				//vSetCntLoops( TRUE );
-				break;
-
-			// Print out how much stack space remains on each task stack.
-			case 's':
-				vDebugPrintf( "Remaining space on Task Stack:\r\n" );
-				//u16StackSize = uxTaskGetStackHighWaterMark( hDebugTask );
-				//vDebugPrintf( "Debug\t%d\r\n", u16StackSize);
-				//u16StackSize = uxTaskGetStackHighWaterMark( hTimeTask );
-				//vDebugPrintf( "Time\t%d\r\n", u16StackSize);
-				//u16StackSize = uxTaskGetStackHighWaterMark( hLCDTask );
-				//vDebugPrintf( "LCD\t%d\r\n", u16StackSize);
-				break;
-
-			// Add general test code here...
-			case 't':
-				break;
-
 			default:
 				break;
 			}

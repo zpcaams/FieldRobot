@@ -1145,11 +1145,11 @@
         </option>
         <option>
           <name>CCCpuClockEdit</name>
-          <state>120.0</state>
+          <state>72.0</state>
         </option>
         <option>
           <name>CCSwoClockAuto</name>
-          <state>1</state>
+          <state>0</state>
         </option>
         <option>
           <name>CCSwoClockEdit</name>
@@ -1251,7 +1251,7 @@
       </plugin>
       <plugin>
         <file>$TOOLKIT_DIR$\plugins\rtos\OpenRTOS\OpenRTOSPlugin.ewplugin</file>
-        <loadFlag>0</loadFlag>
+        <loadFlag>1</loadFlag>
       </plugin>
       <plugin>
         <file>$TOOLKIT_DIR$\plugins\rtos\PowerPac\PowerPacRTOS.ewplugin</file>

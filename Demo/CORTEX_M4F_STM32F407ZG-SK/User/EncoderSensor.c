@@ -162,7 +162,8 @@ void vEncoderSensorRefershTask( void *pvParameters )
       } else {
           SetRemoteControl((i-8), SpiBuffer16);
       }
-        
+      
+//    vDebugPrintf("i:%i, d:%i\n", i, SpiBuffer16);
       vTaskDelayUntil( &xLastWakeTime, 10 / portTICK_RATE_MS );
     }
 } 

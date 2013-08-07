@@ -30,6 +30,6 @@ void vDebugInitQueue( void );
 void vDebugString( char *s );
 void vDebugPrintf(const char *fmt, ...);
 void vDebugPrintResetType( void );
-
+void vUsartTask( void *pvParameters );
 
 #endif /* DEBUG_H_ */

@@ -34,7 +34,6 @@
 #endif
    
 /* Includes ------------------------------------------------------------------*/
-#include "stm32f4xx.h"
 #include "main.h"
 
 /* Exported types ------------------------------------------------------------*/
@@ -67,7 +66,7 @@
 /* Exported macro ------------------------------------------------------------*/
 /* Exported functions ------------------------------------------------------- */
 void CAN_Msg_Rcvr_from_IRQ(uint8_t FIFONumber);
-void vCAN_Config_Initialise(void);
+void vCANConfigInitialise(void);
 void vCANMainTask( void *pvParameters );
 void Init_RxMes(CanRxMsg *RxMessage);
 void CANMsgSendTask (void *pvParameters);

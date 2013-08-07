@@ -1106,6 +1106,9 @@
       <name>$PROJ_DIR$\RegTest.s</name>
     </file>
     <file>
+      <name>$PROJ_DIR$\User\robot_status.c</name>
+    </file>
+    <file>
       <name>$PROJ_DIR$\stm32f4xx_it.c</name>
     </file>
   </group>
