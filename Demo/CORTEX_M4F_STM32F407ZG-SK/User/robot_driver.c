@@ -1,48 +1,29 @@
+/*****************************************************************************/
 /**
-  ******************************************************************************
-  * @file    CAN/CAN_Networking/main.c 
-  * @author  MCD Application Team
-  * @version V1.1.0
-  * @date    18-January-2013
-  * @brief   Main program body
-  ******************************************************************************
-  * @attention
-  *
-  * <h2><center>&copy; COPYRIGHT 2013 STMicroelectronics</center></h2>
-  *
-  * Licensed under MCD-ST Liberty SW License Agreement V2, (the "License");
-  * You may not use this file except in compliance with the License.
-  * You may obtain a copy of the License at:
-  *
-  *        http://www.st.com/software_license_agreement_liberty_v2
-  *
-  * Unless required by applicable law or agreed to in writing, software 
-  * distributed under the License is distributed on an "AS IS" BASIS, 
-  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  * See the License for the specific language governing permissions and
-  * limitations under the License.
-  *
-  ******************************************************************************
-  */
+* @file robot_driver.c
+*
+*
+* This file contains a moto driver control code via CAN.
+*
+* @note
+*
+* None.
+*
+******************************************************************************/
 
-/* Includes ------------------------------------------------------------------*/
-#include "can_usr.h"
+/***************************** Include Files *********************************/
+#include "robot_driver.h"
 
-/** @addtogroup STM32F4xx_StdPeriph_Examples
-  * @{
-  */
+/************************** Constant Definitions *****************************/
 
-/** @addtogroup CAN_Networking
-  * @{
-  */ 
+/**************************** Type Definitions *******************************/
 
-/* Private typedef -----------------------------------------------------------*/
-/* Private define ------------------------------------------------------------*/
-#define KEY_PRESSED     0x00
-#define KEY_NOT_PRESSED 0x01
+/***************** Macros (Inline Functions) Definitions *********************/
 
-/* Private macro -------------------------------------------------------------*/
-/* Private variables ---------------------------------------------------------*/
+/************************** Function Prototypes ******************************/
+static void NVIC_Config_CAN(void);
+
+/************************** Variable Definitions *****************************/
 CAN_InitTypeDef        CAN_InitStructure;
 CAN_FilterInitTypeDef  CAN_FilterInitStructure;
 //global CAN transmit/receive buffer
@@ -50,29 +31,39 @@ CanTxMsg CANTxMessage[4];
 CanRxMsg CANRxMessage;
 xQueueHandle xCANRcvQueue, xCANTransQueue;
 
-/* Private function prototypes -----------------------------------------------*/
-static void NVIC_Config_CAN(void);
-/* Private functions ---------------------------------------------------------*/
-
+/*****************************************************************************/
 /**
-  * @brief Interrupt service. Reveived the CAN message and sent to queue.
-  * @param  FIFONumber : FIFO0 or FIFO1.
-  * @retval None
-  */
-void CAN_Msg_Rcvr_from_IRQ (uint8_t FIFONumber)
+*
+* Interrupt service. Reveived the CAN message and sent to queue.
+*
+* @param  	FIFONumber : FIFO0 or FIFO1.
+*
+* @return	None
+*
+* @note		None
+*
+******************************************************************************/
+void CANMsgRcvrfromIRQ (uint8_t FIFONumber)
 {
-portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
-
-    CAN_Receive(CANx, FIFONumber, &CANRxMessage);
-    xQueueSendToBackFromISR( xCANRcvQueue, &CANRxMessage, &xHigherPriorityTaskWoken);
-    portEND_SWITCHING_ISR( xHigherPriorityTaskWoken );
+	portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
+	
+	CAN_Receive(CANx, FIFONumber, &CANRxMessage);
+	xQueueSendToBackFromISR( xCANRcvQueue, &CANRxMessage, &xHigherPriorityTaskWoken);
+	portEND_SWITCHING_ISR( xHigherPriorityTaskWoken );
 }
 
+/*****************************************************************************/
 /**
-  * @brief Send the CAN message if queue is not blocked.
-  * @param  pvParameters: task parameters.
-  * @retval None
-  */
+*
+* Send the CAN message if queue is not blocked.
+*
+* @param  	FIFONumber : FIFO0 or FIFO1.
+*
+* @return	None
+*
+* @note		None
+*
+******************************************************************************/
 void CANMsgSendTask (void *pvParameters)
 {
 uint32_t Status;
@@ -80,6 +71,8 @@ portBASE_TYPE xStatus;
 CanTxMsg CANTxMsgFromQueue;
 
     for(;;){
+    	// As long as there are can messages in the queue fifo, this code should
+		// pop them out and send them as quick as possible out the CAN bus.
         xStatus = xQueueReceive(xCANTransQueue, &CANTxMsgFromQueue, portMAX_DELAY);
         if (xStatus==pdPASS){
             do{
@@ -89,6 +82,18 @@ CanTxMsg CANTxMsgFromQueue;
     }
 }
 
+/*****************************************************************************/
+/**
+*
+* TODO:fill the blanks later.
+*
+* @param  	None
+*
+* @return	None
+*
+* @note		None
+*
+******************************************************************************/
 void SetMotoCurrent ( void ) 
 {
     uint32_t i;
@@ -155,19 +160,26 @@ void SetMotoCurrent ( void )
         all 4 message sent and got return
     */
 }
-/**
-  * @brief  Main CAN Task, run every 10 ms.
-            small tasks
-            1. give the wheel motor current
-            2. get the wheel motor speed
-            3. give the Steering motor position
-            4. get the Steering motor position
-            5. give the Motorized Faders voltage
-            6. get the Motorized Faders position
 
-  * @param  None
-  * @retval None
-  */
+/*****************************************************************************/
+/**
+*
+* Main CAN Task, run every 10 ms.
+*		small tasks
+*		1. give the wheel motor current
+*		2. get the wheel motor speed
+*		3. give the Steering motor position
+*		4. get the Steering motor position
+*		5. give the Motorized Faders voltage
+*		6. get the Motorized Faders position
+*
+* @param	None
+*
+* @return	None
+*
+* @note		None
+*
+******************************************************************************/
 void vCANMainTask( void *pvParameters )
 {
     portTickType xLastWakeTime;
@@ -202,12 +214,18 @@ void vCANMainTask( void *pvParameters )
     }
 }
 
-
+/*****************************************************************************/
 /**
-  * @brief  Configures the CAN.
-  * @param  None
-  * @retval None
-  */
+*
+* Configures the CAN.
+*
+* @param	None
+*
+* @return	None
+*
+* @note		None
+*
+******************************************************************************/
 void vCANConfigInitialise(void)
 {
   GPIO_InitTypeDef  GPIO_InitStructure;
@@ -272,11 +290,18 @@ void vCANConfigInitialise(void)
   NVIC_Config_CAN();
 }
 
+/*****************************************************************************/
 /**
-  * @brief  Configures the NVIC for CAN.
-  * @param  None
-  * @retval None
-  */
+*
+* Configures the NVIC for CAN.
+*
+* @param	None
+*
+* @return	None
+*
+* @note		None
+*
+******************************************************************************/
 static void NVIC_Config_CAN(void)
 {
   NVIC_InitTypeDef  NVIC_InitStructure;
@@ -287,11 +312,18 @@ static void NVIC_Config_CAN(void)
   NVIC_Init(&NVIC_InitStructure);
 }
 
+/*****************************************************************************/
 /**
-  * @brief  Initializes the Rx Message.
-  * @param  RxMessage: pointer to the message to initialize
-  * @retval None
-  */
+*
+* Initializes the Rx Message.
+*
+* @param	RxMessage: pointer to the message to initialize
+*
+* @return	None
+*
+* @note		None
+*
+******************************************************************************/
 void Init_RxMes(CanRxMsg *RxMessage)
 {
   uint8_t ubCounter = 0;
