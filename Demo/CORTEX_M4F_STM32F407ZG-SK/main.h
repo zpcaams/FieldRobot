@@ -62,11 +62,10 @@
 #include "stm32f4xx.h"
 #include "stm32f4xx_conf.h"
 
-#include "debug.h"
-
-#include "EncoderSensor.h"
-#include "can_usr.h"
 #include "robot_status.h"
+#include "robot_debug.h"
+#include "robot_encoder.h"
+#include "robot_driver.h"
 
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/
@@ -81,7 +80,6 @@
 #define mainFLOP_TASK_PRIORITY				( tskIDLE_PRIORITY )
 
 #define EncoderSensorRefersh_TASK_PRIORITY				( tskIDLE_PRIORITY + 2UL )
-#define   portTASK_FUNCTION_TASK_PRIORITY				( tskIDLE_PRIORITY + 1UL )
    
 /* The LED used by the check timer. */
 #define mainCHECK_LED 						( 3UL )

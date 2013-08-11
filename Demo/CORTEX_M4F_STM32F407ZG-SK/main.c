@@ -229,7 +229,6 @@ int main(void)
 	/* Configure the hardware ready to run the test. */
 	prvSetupHardware();
 	
-  vDebugInitQueue();
   
   /* Creat the queue for CAN */
   //xCANRcvQueue = xQueueCreate( 8, sizeof(CanRxMsg) );
@@ -237,8 +236,7 @@ int main(void)
   //xTaskCreate( CANMsgSendTask, ( signed char * ) "CanSend", configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 3UL), NULL );
   //xTaskCreate( vCANMainTask, ( signed char * ) "CanMain", configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 2UL), NULL );
         
-  xTaskCreate( vEncoderSensorRefershTask, ( signed char * ) "Encoder", configMINIMAL_STACK_SIZE, NULL, EncoderSensorRefersh_TASK_PRIORITY, NULL );
-  xTaskCreate( vUsartTask, ( signed char * ) "Usart", configMINIMAL_STACK_SIZE, NULL, portTASK_FUNCTION_TASK_PRIORITY, NULL );
+  xTaskCreate( EncoderRefershTask, ( signed char * ) "Encoder", configMINIMAL_STACK_SIZE, NULL, EncoderSensorRefersh_TASK_PRIORITY, NULL );
         
 	/* The following function will only create more tasks and timers if
 	mainCREATE_SIMPLE_LED_FLASHER_DEMO_ONLY is set to 0 (at the top of this
@@ -387,10 +385,10 @@ static void prvSetupHardware( void )
 	vParTestInitialise();
         
 	/* Setup the Usart outputs. */
-  vDebugInitialise();
+  DebugInitialise();
         
   /* Setup the EncoderSensor Interface. */
-	vEncoderSensorInitialise();
+	EncoderInitialise();
         
   /* Setup the CAN Interface. */
 	vCANConfigInitialise();

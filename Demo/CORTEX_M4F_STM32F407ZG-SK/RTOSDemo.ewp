@@ -1085,15 +1085,6 @@
   <group>
     <name>User</name>
     <file>
-      <name>$PROJ_DIR$\User\can_usr.c</name>
-    </file>
-    <file>
-      <name>$PROJ_DIR$\User\debug.c</name>
-    </file>
-    <file>
-      <name>$PROJ_DIR$\User\EncoderSensor.c</name>
-    </file>
-    <file>
       <name>$PROJ_DIR$\FreeRTOSConfig.h</name>
     </file>
     <file>
@@ -1104,6 +1095,15 @@
     </file>
     <file>
       <name>$PROJ_DIR$\RegTest.s</name>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\User\robot_debug.c</name>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\User\robot_driver.c</name>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\User\robot_encoder.c</name>
     </file>
     <file>
       <name>$PROJ_DIR$\User\robot_status.c</name>

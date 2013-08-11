@@ -30,7 +30,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_it.h"
 #include "main.h"
-#include "can_usr.h"
+#include "robot_driver.h"
 
 /** @addtogroup STM32F4xx_StdPeriph_Examples
   * @{
@@ -164,7 +164,7 @@ __weak void SysTick_Handler(void)
   */
 void CAN1_RX0_IRQHandler(void)
 {
-    CAN_Msg_Rcvr_from_IRQ(CAN_FIFO0);
+    CANMsgRcvrfromIRQ(CAN_FIFO0);
 }
 #endif  /* USE_CAN1 */
 
