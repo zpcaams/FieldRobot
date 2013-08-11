@@ -1,37 +1,100 @@
-/*
- * debug.c
- *
- *  Created on: Jan. 5, 2012
- *      Author: James Kemp
- */
-#include <stdarg.h>
-#include <ctype.h>
-
-#include "debug.h"
-
-// Private functions.
-void vNum2String( char *s, uint8_t *pPos, uint32_t u32Number, uint8_t u8Base);
-
-// Total buffer size for all debug messages.
-#define DEBUG_QUEUE_SIZE	128
-xQueueHandle xDebugQueue;
-
-extern xTaskHandle hDebugTask;
-
+/*****************************************************************************/
 /**
- * @brief Definition for Debug port, connected to USART3
- */ 
-USART_TypeDef* COM_USART = USART3; 
-USART_InitTypeDef USART_InitStructure;
+* @file robot_debug.c
+*
+*
+* This file contains a driver for DebugPrintf function in FreeRTOS.
+*
+* @note
+*
+* None.
+*
+******************************************************************************/
 
+/***************************** Include Files *********************************/
+
+#include "robot_debug.h"
+
+/************************** Constant Definitions *****************************/
+#define DEBUG_QUEUE_SIZE			128
+#define DEBUG_TASK_PRIORITY			( tskIDLE_PRIORITY + 1UL )
+
+/**************************** Type Definitions *******************************/
+
+/***************** Macros (Inline Functions) Definitions *********************/
+
+/************************** Function Prototypes ******************************/
+
+/************************** Variable Definitions *****************************/
+static xQueueHandle xDebugQueue;
+
+/*****************************************************************************/
 /**
-  * @brief  Configures the USART Peripheral as Debug Output.
-  * @param  None
-  * @retval None
-  */
-void vDebugInitialise(void)
+*
+* This is a FreeRTOS task.
+* This task has very low priority which continues scaning the usart port and
+* send data from queue, if any, to usart.
+*
+* @param	None
+*
+* @return	None
+*
+* @note		None
+*
+******************************************************************************/
+void UsartTask( void *pvParameters ) 
+{
+	char ch;
+	portBASE_TYPE xStatus;
+	//uint16_t u16StackSize;
+
+	/* The parameters are not used. */
+	( void ) pvParameters;
+
+	for(;;) {
+		// As long as there are characters in the queue fifo this code should
+		// pop them out and send them as quick as possible out the UART.
+		if( USART_GetFlagStatus( USARTx, USART_FLAG_TXE ) ) {
+			// We don't want to block forever - need to check on Rx too.
+			xStatus = xQueueReceive( xDebugQueue, &ch, 10 / portTICK_RATE_MS );
+			if( xStatus == pdPASS ) USART_SendData( USARTx, ch );
+		}
+		if ( USART_GetFlagStatus( USARTx, USART_FLAG_RXNE ) ) {
+			ch = USART_ReceiveData( USARTx );
+			// Handle Debug Console Commands Here.
+			switch ( ch ) {
+
+			// Alphabetical list of commands the console debugger responds to.
+
+			case '0':
+				break;
+			default:
+				break;
+			}
+		}
+
+		taskYIELD();
+	}
+}
+
+/*****************************************************************************/
+/**
+*
+* Configures the USART Peripheral as Debug Output.
+* Creat Debug Output Queue.
+* Creat Debug Output Task.
+*
+* @param	None
+*
+* @return	None
+*
+* @note		None
+*
+******************************************************************************/
+void DebugInitialise(void)
 {
   GPIO_InitTypeDef GPIO_InitStructure;
+  USART_InitTypeDef USART_InitStructure;
   
   /* USART GPIOs configuration **************************************************/
   /* Enable GPIO clock */
@@ -77,59 +140,34 @@ void vDebugInitialise(void)
     
   /* Enable USART */
   USART_Cmd(USARTx, ENABLE);
+  
+  /* Creat Debug Output Queue. */
+  xDebugQueue = xQueueCreate( DEBUG_QUEUE_SIZE, sizeof( char ) );
+  
+  /* Creat Debug Output Task. */
+  xTaskCreate( 	UsartTask, 
+				( signed char * ) "Debug", 
+				configMINIMAL_STACK_SIZE, 
+				NULL, 
+				DEBUG_TASK_PRIORITY, 
+				NULL ); 
 }
 
-// ============================================================================
-void vDebugInitQueue( void ) 
-{
-	xDebugQueue = xQueueCreate( DEBUG_QUEUE_SIZE, sizeof( char ) );
-}
-
-// ============================================================================
-void vUsartTask( void *pvParameters ) 
-{
-	char ch;
-	portBASE_TYPE xStatus;
-	//uint16_t u16StackSize;
-
-	/* The parameters are not used. */
-	( void ) pvParameters;
-
-	vDebugString( "Debug task started.\r\n");
-
-	for(;;) {
-		// As long as there are characters in the queue fifo this code should
-		// pop them out and send them as quick as possible out the UART.
-		if( USART_GetFlagStatus( COM_USART, USART_FLAG_TXE ) ) {
-			// We don't want to block forever - need to check on Rx too.
-			xStatus = xQueueReceive( xDebugQueue, &ch, 10 / portTICK_RATE_MS );
-			if( xStatus == pdPASS ) USART_SendData( COM_USART, ch );
-		}
-		if ( USART_GetFlagStatus( COM_USART, USART_FLAG_RXNE ) ) {
-			ch = USART_ReceiveData( COM_USART );
-			// Handle Debug Console Commands Here.
-			switch ( ch ) {
-
-			// Alphabetical list of commands the console debugger responds to.
-
-			case '0':
-				break;
-			default:
-				break;
-			}
-		}
-
-		taskYIELD();
-	}
-}
-
-
-
-// This function copies the the given string into the OS queue.  If the queue
-// is full then the rest of the string is ignored.
-// ToDo: Ignoring a full queue is not good.
-// ============================================================================
-void vDebugString( char *s ) 
+/*****************************************************************************/
+/**
+*
+* This function copies the the given string into the OS queue.  If the queue
+* is full then the rest of the string is ignored.
+* ToDo: Ignoring a full queue is not good.
+*
+* @param	s
+*
+* @return	None
+*
+* @note		None
+*
+******************************************************************************/
+void DebugString( char *s ) 
 {
 	portBASE_TYPE xStatus;
 
@@ -143,125 +181,22 @@ void vDebugString( char *s )
 	taskEXIT_CRITICAL();
 }
 
-// Simply print to the debug console a string based on the type of reset.
-// ============================================================================
-void vDebugPrintResetType( void ) 
-{
-
-	if ( PWR_GetFlagStatus( PWR_FLAG_WU ) )
-		vDebugPrintf( "PWR: Wake Up flag\r\n" );
-	if ( PWR_GetFlagStatus( PWR_FLAG_SB ) )
-		vDebugPrintf( "PWR: StandBy flag.\r\n" );
-	if ( PWR_GetFlagStatus( PWR_FLAG_PVDO ) )
-		vDebugPrintf( "PWR: PVD Output.\r\n" );
-	if ( PWR_GetFlagStatus( PWR_FLAG_BRR ) )
-		vDebugPrintf( "PWR: Backup regulator ready flag.\r\n" );
-	if ( PWR_GetFlagStatus( PWR_FLAG_REGRDY ) )
-		vDebugPrintf( "PWR: Main regulator ready flag.\r\n" );
-
-	if ( RCC_GetFlagStatus( RCC_FLAG_BORRST ) )
-		vDebugPrintf( "RCC: POR/PDR or BOR reset\r\n" );
-	if ( RCC_GetFlagStatus( RCC_FLAG_PINRST ) )
-		vDebugPrintf( "RCC: Pin reset.\r\n" );
-	if ( RCC_GetFlagStatus( RCC_FLAG_PORRST ) )
-		vDebugPrintf( "RCC: POR/PDR reset.\r\n" );
-	if ( RCC_GetFlagStatus( RCC_FLAG_SFTRST ) )
-		vDebugPrintf( "RCC: Software reset.\r\n" );
-	if ( RCC_GetFlagStatus( RCC_FLAG_IWDGRST ) )
-		vDebugPrintf( "RCC: Independent Watchdog reset.\r\n" );
-	if ( RCC_GetFlagStatus( RCC_FLAG_WWDGRST ) )
-		vDebugPrintf( "RCC: Window Watchdog reset.\r\n" );
-	if ( RCC_GetFlagStatus( RCC_FLAG_LPWRRST ) )
-		vDebugPrintf( "RCC: Low Power reset.\r\n" );
-}
-
-
-
-// DebugPrintf - really trivial implementation, however, it's reentrant!
-// ToDo - This needs a rewrite! Add code to check we're not overflowing.
-// ============================================================================
-void vDebugPrintf(const char *fmt, ...)
- {
-	char sTmp[80];	// String build area.  String lives on the stack!
-	uint8_t pos=0;
-	char *bp = (char *)fmt;
-    va_list ap;
-    char c;
-    char *p;
-    int i;
-
-    va_start(ap, fmt);
-
-    while ((c = *bp++)) {
-        if (c != '%') {
-            sTmp[pos++] = c;
-            continue;
-        }
-
-        switch ((c = *bp++)) {
-			// d - decimal value
-			case 'd':
-				vNum2String( sTmp, &pos, va_arg(ap, uint32_t), 10);
-				break;
-
-			// %x - value in hex
-			case 'x':
-				sTmp[pos++] = '0';
-				sTmp[pos++] = 'x';
-				vNum2String( sTmp, &pos, va_arg(ap, uint32_t), 16);
-				break;
-
-			// %b - binary
-			case 'b':
-				sTmp[pos++] = '0';
-				sTmp[pos++] = 'b';
-				vNum2String( sTmp, &pos, va_arg(ap, uint32_t), 2);
-				break;
-
-			// %c - character
-			case 'c':
-				sTmp[pos++] = va_arg(ap, int);
-				break;
-
-			// %i - integer
-			case 'i':
-				i = va_arg(ap, int32_t);
-				if(i < 0){
-					sTmp[pos++] = '-';
-					vNum2String( sTmp, &pos, (~i)+1, 10);
-				} else {
-					vNum2String( sTmp, &pos, i, 10);
-				}
-				break;
-
-			// %s - string
-			case 's':
-				p = va_arg(ap, char *);
-				do {
-					sTmp[pos++] = *p++;
-				} while (*p);
-				break;
-
-			// %% - output % character
-			case '%':
-				sTmp[pos++] = '%';
-				break;
-
-			// Else, must be something else not handled.
-			default:
-				sTmp[pos++] = '?';
-				break;
-        }
-    }
-    sTmp[pos++] = 0;		// Mark the end of the string.
-    vDebugString( sTmp );	// Copy the string into the OS queue.
-    return;
-}
-
-
-// Convert a number to a string - used in vDebugPrintf.
-// ============================================================================
-void vNum2String( char *s, uint8_t *pPos, uint32_t u32Number, uint8_t u8Base) 
+/*****************************************************************************/
+/**
+*
+* Convert a number to a string - used in DebugPrintf.
+*
+* @param	s
+* @param	pPos
+* @param	u32Number
+* @param	u8Base
+*
+* @return	None
+*
+* @note		None
+*
+******************************************************************************/
+void Num2String( char *s, uint8_t *pPos, uint32_t u32Number, uint8_t u8Base) 
 {
 
     char buf[33];
@@ -285,6 +220,97 @@ void vNum2String( char *s, uint8_t *pPos, uint32_t u32Number, uint8_t u8Base)
     	*pPos += 1;
         p++;
     }
+    return;
+}
+
+/*****************************************************************************/
+/**
+*
+* DebugPrintf - really trivial implementation, however, it's reentrant!
+* ToDo - This needs a rewrite! Add code to check we're not overflowing.
+*
+* @param	*fmt
+*
+* @return	None
+*
+* @note		None
+*
+******************************************************************************/
+void DebugPrintf(const char *fmt, ...)
+ {
+	char sTmp[80];	// String build area.  String lives on the stack!
+	uint8_t pos=0;
+	char *bp = (char *)fmt;
+    va_list ap;
+    char c;
+    char *p;
+    int i;
+
+    va_start(ap, fmt);
+
+    while ((c = *bp++)) {
+        if (c != '%') {
+            sTmp[pos++] = c;
+            continue;
+        }
+
+        switch ((c = *bp++)) {
+			// d - decimal value
+			case 'd':
+				Num2String( sTmp, &pos, va_arg(ap, uint32_t), 10);
+				break;
+
+			// %x - value in hex
+			case 'x':
+				sTmp[pos++] = '0';
+				sTmp[pos++] = 'x';
+				Num2String( sTmp, &pos, va_arg(ap, uint32_t), 16);
+				break;
+
+			// %b - binary
+			case 'b':
+				sTmp[pos++] = '0';
+				sTmp[pos++] = 'b';
+				Num2String( sTmp, &pos, va_arg(ap, uint32_t), 2);
+				break;
+
+			// %c - character
+			case 'c':
+				sTmp[pos++] = va_arg(ap, int);
+				break;
+
+			// %i - integer
+			case 'i':
+				i = va_arg(ap, int32_t);
+				if(i < 0){
+					sTmp[pos++] = '-';
+					Num2String( sTmp, &pos, (~i)+1, 10);
+				} else {
+					Num2String( sTmp, &pos, i, 10);
+				}
+				break;
+
+			// %s - string
+			case 's':
+				p = va_arg(ap, char *);
+				do {
+					sTmp[pos++] = *p++;
+				} while (*p);
+				break;
+
+			// %% - output % character
+			case '%':
+				sTmp[pos++] = '%';
+				break;
+
+			// Else, must be something else not handled.
+			default:
+				sTmp[pos++] = '?';
+				break;
+        }
+    }
+    sTmp[pos++] = 0;		// Mark the end of the string.
+    DebugString( sTmp );	// Copy the string into the OS queue.
     return;
 }
 
