@@ -66,6 +66,9 @@
 #define SPIx_CS_GPIO_PORT          GPIOB                       /* GPIOB */
 #define SPIx_CS_GPIO_CLK           RCC_AHB1Periph_GPIOB
 
+
+#define Encoder_TASK_PRIORITY				        ( tskIDLE_PRIORITY + 2UL )
+ 
 /**************************** Type Definitions *******************************/
 
 /***************** Macros (Inline Functions) Definitions *********************/

@@ -152,7 +152,7 @@ void EncoderRefershTask( void *pvParameters )
 	portTickType xLastWakeTime;
 	uint8_t i = 0;
 	uint16_t SpiBuffer16;
-	uint8_t *pSpiBuffer = (uint8_t *)(&SpiBuffer16);
+	uint8_t SpiBuffer[2];
 	
 	xLastWakeTime = xTaskGetTickCount();
 	
@@ -162,7 +162,8 @@ void EncoderRefershTask( void *pvParameters )
 		if (i<15) {i++;} 
 		else {i = 0;}
 		
-		SPIx_Read(pSpiBuffer, i, 2);
+		SPIx_Read(SpiBuffer, i, 2);
+    SpiBuffer16 = (SpiBuffer[0]<<8)+SpiBuffer[1];
 		
 		if (i < 5){
 			SetSteeringMotorPosition((i), SpiBuffer16);
@@ -249,4 +250,7 @@ void EncoderInitialise(void)
 	
 	/* Deselect : Chip Select high */
 	GPIO_SetBits(SPIx_CS_GPIO_PORT, SPIx_CS_PIN);
+	
+	xTaskCreate( EncoderRefershTask, ( signed char * ) "Encoder", configMINIMAL_STACK_SIZE, NULL, Encoder_TASK_PRIORITY, NULL );
+
 }
