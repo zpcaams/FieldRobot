@@ -1,16 +1,31 @@
-/* Define to prevent recursive inclusion -------------------------------------*/
+/*****************************************************************************/
+/**
+*
+* @file robot_debug.h
+*
+*
+******************************************************************************/
+
 #ifndef __ROBOT_STATUS_H
 #define __ROBOT_STATUS_H
 
 #ifdef __cplusplus
  extern "C" {
 #endif
-   
-/* Includes ------------------------------------------------------------------*/
+
+/***************************** Include Files *********************************/
 #include "main.h"
-   
-/* Exported types ------------------------------------------------------------*/
-   
+
+/************************** Constant Definitions *****************************/
+ 
+/* Position Define */
+#define PosLeftFront      0
+#define PosRightFront     1
+#define PosRightBack      2
+#define PosLeftBack       3
+ 
+/**************************** Type Definitions *******************************/
+ 
 /* ÂÖì±µç»ú */
 typedef struct
 {
@@ -85,17 +100,9 @@ typedef struct
 }
 Couplings_4TypeDef;
 
+/***************** Macros (Inline Functions) Definitions *********************/
 
-/* Exported constants --------------------------------------------------------*/
-
-/* Exported macro ------------------------------------------------------------*/
-/* Position Define */
-#define PoLeftFront      0
-#define PoRightFront     1
-#define PoRightBack      2
-#define PoLeftBack       3
-
-/* Exported functions ------------------------------------------------------- */
+/************************** Function Prototypes ******************************/
 
 void SetSteeringMotorPosition(uint8_t Po, uint16_t GP);
 void SetCouplingsPosition(uint8_t Po, uint16_t GP);

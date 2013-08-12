@@ -6,7 +6,6 @@
 *
 ******************************************************************************/
 
-/* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef ROBOT_DRIVER_H
 #define ROBOT_DRIVER_H
 
@@ -43,7 +42,13 @@
   #define CAN_RX_SOURCE              GPIO_PinSource5
   #define CAN_TX_SOURCE              GPIO_PinSource13    
 #endif  /* USE_CAN1 */
-
+ 
+/* CAN ID Base for Moto Drivers */
+#define WheelMotorId     1
+#define SteeringMotorId  5
+#define ElectricPutterId 9
+ 
+/* CAN Task Priority Setup */
 #define CANMsgSend_TASK_PRIORITY				    ( tskIDLE_PRIORITY + 4UL )
 #define CANMain_TASK_PRIORITY				        ( tskIDLE_PRIORITY + 3UL )
    

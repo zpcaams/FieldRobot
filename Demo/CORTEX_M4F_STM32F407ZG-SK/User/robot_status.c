@@ -1,11 +1,21 @@
+/*****************************************************************************/
+/**
+* @file robot_status.c
+*
+*
+* This file contains all robot status include the status from sensors, moto
+* drivers and higher level status.
+*
+* @note
+*
+* None.
+*
+******************************************************************************/
 
-
-/* Includes ------------------------------------------------------------------*/
+/***************************** Include Files *********************************/
 #include "robot_status.h"
 
-
-/* Private typedef -----------------------------------------------------------*/
-/* Private define ------------------------------------------------------------*/
+/************************** Constant Definitions *****************************/
 
 /* Steering Motor Encoder Adjustment*/
 #define SMLF_ADJ    0
@@ -19,8 +29,14 @@
 #define CPRB_ADJ    0
 #define CPLB_ADJ    0
 
-/* Private macro -------------------------------------------------------------*/
-/* Private variables ---------------------------------------------------------*/
+/**************************** Type Definitions *******************************/
+
+/***************** Macros (Inline Functions) Definitions *********************/
+
+/************************** Function Prototypes ******************************/
+
+/************************** Variable Definitions *****************************/
+
 static WheelMotor_4TypeDef      WheelMotor;
 static SteeringMotor_4TypeDef   SteeringMotor;
 static ElectricPutter_4TypeDef  ElectricPutter;
@@ -29,26 +45,36 @@ static Couplings_4TypeDef       Couplings;
 /* 2.4G Ò£¿Ø */
 static uint16_t                 RemoteControl[8];
 
-/* Private function prototypes -----------------------------------------------*/
-/* Private functions ---------------------------------------------------------*/
-
-void SetSteeringMotorPosition(uint8_t Po, uint16_t GP)
+/*****************************************************************************/
+/**
+*
+* SetSteeringMotorPosition
+*
+* @param  	Pos
+* @param	Value
+*
+* @return	None
+*
+* @note		None
+*
+******************************************************************************/
+void SetSteeringMotorPosition(uint8_t Pos, uint16_t Value)
 {
-    switch (Po){
-        case PoLeftFront:{
-            SteeringMotor.LeftFront.GP = GP+SMLF_ADJ;
+    switch (Pos){
+        case PosLeftFront:{
+            SteeringMotor.LeftFront.GP = Value+SMLF_ADJ;
             break;
         }
-        case PoRightFront: {
-            SteeringMotor.RightFront.GP = GP+SMRF_ADJ;
+        case PosRightFront: {
+            SteeringMotor.RightFront.GP = Value+SMRF_ADJ;
             break;
         }        
-        case PoRightBack: {
-            SteeringMotor.RightBack.GP = GP+SMRB_ADJ;
+        case PosRightBack: {
+            SteeringMotor.RightBack.GP = Value+SMRB_ADJ;
             break;
         }        
-        case PoLeftBack: {
-            SteeringMotor.LeftBack.GP = GP+SMLB_ADJ;
+        case PosLeftBack: {
+            SteeringMotor.LeftBack.GP = Value+SMLB_ADJ;
             break;
         }
         default:{
@@ -57,23 +83,36 @@ void SetSteeringMotorPosition(uint8_t Po, uint16_t GP)
     }
 }
 
-void SetCouplingsPosition(uint8_t Po, uint16_t GP)
+/*****************************************************************************/
+/**
+*
+* SetCouplingsPosition
+*
+* @param  	Pos
+* @param	Value
+*
+* @return	None
+*
+* @note		None
+*
+******************************************************************************/
+void SetCouplingsPosition(uint8_t Pos, uint16_t Value)
 {
-    switch (Po){
-        case PoLeftFront:{
-            Couplings.LeftFront.GP = GP+CPLF_ADJ;
+    switch (Pos){
+        case PosLeftFront:{
+            Couplings.LeftFront.GP = Value+CPLF_ADJ;
             break;
         }
-        case PoRightFront: {
-            Couplings.RightFront.GP = GP+CPRF_ADJ;
+        case PosRightFront: {
+            Couplings.RightFront.GP = Value+CPRF_ADJ;
             break;
         }        
-        case PoRightBack: {
-            Couplings.RightBack.GP = GP+CPRB_ADJ;
+        case PosRightBack: {
+            Couplings.RightBack.GP = Value+CPRB_ADJ;
             break;
         }        
-        case PoLeftBack: {
-            Couplings.LeftBack.GP = GP+CPLB_ADJ;
+        case PosLeftBack: {
+            Couplings.LeftBack.GP = Value+CPLB_ADJ;
             break;
         }
         default:{
@@ -82,9 +121,42 @@ void SetCouplingsPosition(uint8_t Po, uint16_t GP)
     }
 }
 
+/*****************************************************************************/
+/**
+*
+* SetRemoteControl
+*
+* @param  	Channel
+* @param	Data
+*
+* @return	None
+*
+* @note		None
+*
+******************************************************************************/
 void SetRemoteControl(uint8_t Channel, uint16_t Data)
 {
     if ((Channel>=1)||(Channel<=8)){
         RemoteControl[Channel] = Data;    
     }
+}
+
+/*****************************************************************************/
+/**
+*
+* GetRemoteControl
+*
+* @param  	Channel
+*
+* @return	None
+*
+* @note		None
+*
+******************************************************************************/
+uint16_t GetRemoteControl(uint8_t Channel)
+{
+  if((RemoteControl[Channel]==60000)||(RemoteControl[Channel]==0)){
+    return 1440;
+  }
+  return RemoteControl[Channel];
 }
