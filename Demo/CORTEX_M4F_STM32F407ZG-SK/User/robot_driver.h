@@ -14,8 +14,19 @@
 #endif
 
 /***************************** Include Files *********************************/
-#include "main.h"
+
+/* Kernel includes. */
+#include "FreeRTOS.h"
+#include "task.h"
+#include "queue.h"
+
+/* ST Driver includes. */
+#include "stm32f4xx_conf.h"
+
+/* MLDS includes. */
 #include "mlds_can.h"
+ 
+#include "robot_status.h"
 
 /************************** Constant Definitions *****************************/
 /* #define USE_CAN1*/

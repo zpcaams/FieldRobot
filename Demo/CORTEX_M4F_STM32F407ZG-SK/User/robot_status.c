@@ -42,6 +42,8 @@ static SteeringMotor_4TypeDef   SteeringMotor;
 static ElectricPutter_4TypeDef  ElectricPutter;
 static Couplings_4TypeDef       Couplings;
 
+const uint16_t					RemoteControlDefault[8] ={
+		1462, 1439, 1439, 1466, 1062, 1411, 1062, 1047};
 /* 2.4G Ò£¿Ø */
 static uint16_t                 RemoteControl[8];
 
@@ -126,7 +128,7 @@ void SetCouplingsPosition(uint8_t Pos, uint16_t Value)
 *
 * SetRemoteControl
 *
-* @param  	Channel
+* @param  	Channel	0~7
 * @param	Data
 *
 * @return	None
@@ -136,9 +138,11 @@ void SetCouplingsPosition(uint8_t Pos, uint16_t Value)
 ******************************************************************************/
 void SetRemoteControl(uint8_t Channel, uint16_t Data)
 {
-    if ((Channel>=1)||(Channel<=8)){
-        RemoteControl[Channel] = Data;    
-    }
+	if((Data>1000)&&(Data<2000)){
+		RemoteControl[Channel] = Data;  
+	}else{
+		RemoteControl[Channel] = RemoteControlDefault[Channel];
+	}
 }
 
 /*****************************************************************************/
@@ -146,17 +150,14 @@ void SetRemoteControl(uint8_t Channel, uint16_t Data)
 *
 * GetRemoteControl
 *
-* @param  	Channel
+* @param  	Channel	0~7
 *
-* @return	None
+* @return	Remote Control Value
 *
 * @note		None
 *
 ******************************************************************************/
 uint16_t GetRemoteControl(uint8_t Channel)
 {
-  if((RemoteControl[Channel]==60000)||(RemoteControl[Channel]==0)){
-    return 1440;
-  }
   return RemoteControl[Channel];
 }

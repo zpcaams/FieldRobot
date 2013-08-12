@@ -14,8 +14,10 @@
 #endif
 
 /***************************** Include Files *********************************/
-#include "main.h"
 
+ /* ST Driver includes. */
+ #include "stm32f4xx_conf.h"
+ 
 /************************** Constant Definitions *****************************/
  
 /* Position Define */

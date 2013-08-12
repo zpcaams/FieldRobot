@@ -117,7 +117,7 @@ void SetMotoSpeed ( void )
         send the message to driver by queue
     */
 //    for (i=0;i<4;i++){
-        i=PoRightFront;
+        i=PosRightFront;
         CANTxMessage[i].StdId = i+DevId;
         CANTxMessage[i].ExtId = 0;
         CANTxMessage[i].RTR = CAN_RTR_DATA;
