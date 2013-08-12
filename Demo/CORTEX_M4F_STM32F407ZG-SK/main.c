@@ -221,20 +221,12 @@ static xSemaphoreHandle xTestSemaphore = NULL;
 interrupt. */
 volatile unsigned long ulButtonPressCounts = 0UL;
 
-extern xQueueHandle xCANRcvQueue, xCANTransQueue;
 /*-----------------------------------------------------------*/
 
 int main(void)
 {
 	/* Configure the hardware ready to run the test. */
 	prvSetupHardware();
-	
-  
-  /* Creat the queue for CAN */
-  //xCANRcvQueue = xQueueCreate( 8, sizeof(CanRxMsg) );
-  //xCANTransQueue = xQueueCreate( 5, sizeof(CanTxMsg) );
-  //xTaskCreate( CANMsgSendTask, ( signed char * ) "CanSend", configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 3UL), NULL );
-  //xTaskCreate( vCANMainTask, ( signed char * ) "CanMain", configMINIMAL_STACK_SIZE, NULL, (tskIDLE_PRIORITY + 2UL), NULL );
         
   xTaskCreate( EncoderRefershTask, ( signed char * ) "Encoder", configMINIMAL_STACK_SIZE, NULL, EncoderSensorRefersh_TASK_PRIORITY, NULL );
         
@@ -391,7 +383,7 @@ static void prvSetupHardware( void )
 	EncoderInitialise();
         
   /* Setup the CAN Interface. */
-	vCANConfigInitialise();
+	CANInitialise();
 	
 	/* Configure the button input.  This configures the interrupt to use the
 	lowest interrupt priority, so it is ok to use the ISR safe FreeRTOS API

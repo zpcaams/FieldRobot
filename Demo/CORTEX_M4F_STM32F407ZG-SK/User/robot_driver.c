@@ -21,13 +21,10 @@
 /***************** Macros (Inline Functions) Definitions *********************/
 
 /************************** Function Prototypes ******************************/
-static void NVIC_Config_CAN(void);
 
 /************************** Variable Definitions *****************************/
-CAN_InitTypeDef        CAN_InitStructure;
-CAN_FilterInitTypeDef  CAN_FilterInitStructure;
+
 //global CAN transmit/receive buffer
-CanTxMsg CANTxMessage[4];
 CanRxMsg CANRxMessage;
 xQueueHandle xCANRcvQueue, xCANTransQueue;
 
@@ -85,7 +82,7 @@ CanTxMsg CANTxMsgFromQueue;
 /*****************************************************************************/
 /**
 *
-* TODO:fill the blanks later.
+* Setup Moto Speed through CAN bus.
 *
 * @param  	None
 *
@@ -94,67 +91,86 @@ CanTxMsg CANTxMsgFromQueue;
 * @note		None
 *
 ******************************************************************************/
-void SetMotoCurrent ( void ) 
+void SetMotoSpeed ( void ) 
 {
-    uint32_t i;
-    uint32_t DevId=0x7C;
-    uint32_t Status;
+    uint32_t i=0;
     portBASE_TYPE xStatus;
+    const uint32_t DevId=WheelMotorId;
+    int32_t Speed=0;
+    uint16_t RemoteChannel_2;
     uint8_t RcvrCounter=0;
+    u32 *PData;
     uint8_t TransmitStatus[4]={0, 0, 0, 0};
     uint8_t RcvrDone=0;
-    /*  TODO
-        calculate the needed current here
+    CanTxMsg CANTxMessage[4];
+    /*
+        calculate the speed here
     */
-
+    RemoteChannel_2=GetRemoteControl(2-1);
+    Speed = (RemoteChannel_2-1440)/8;
+    if((Speed<5)&&(Speed>-5)){
+        Speed=0;
+    }
+    DebugPrintf("Speed=%i\n", Speed);    
+  
     /*
         send the message to driver by queue
     */
-    for (i=0;i<4;i++){
+//    for (i=0;i<4;i++){
+        i=PoRightFront;
         CANTxMessage[i].StdId = i+DevId;
+        CANTxMessage[i].ExtId = 0;
         CANTxMessage[i].RTR = CAN_RTR_DATA;
         CANTxMessage[i].IDE = CAN_ID_STD;
         CANTxMessage[i].DLC = 8;
         CANTxMessage[i].Data[0] = 8;       //len
         CANTxMessage[i].Data[1] = i+DevId; //id
-        CANTxMessage[i].Data[2] = 0x96;    //func:设定目标电流
+        CANTxMessage[i].Data[2] = MLDS_V;  //func
         CANTxMessage[i].Data[3] = 0;       //
         CANTxMessage[i].Data[4] = 0;       //data:0
         CANTxMessage[i].Data[5] = 0;       //
         CANTxMessage[i].Data[6] = 0;       //
         CANTxMessage[i].Data[7] = 0;       //
+        
+        PData = (u32 *)(&CANTxMessage[i].Data[4]);
+        *PData = Speed;
+
         xStatus = xQueueSendToBack(xCANTransQueue, &CANTxMessage[i], 0);
         if (xStatus!=pdPASS){
         //error, queue full
         }
-    }
+//    }
     
     /*
         wait for return
     */    
-    do{
-        xStatus = xQueueReceive( xCANRcvQueue, &CANRxMessage, 5/portTICK_RATE_MS );
-        if (Status==pdTRUE){
-            RcvrCounter++;
-        }
-        if ((CANRxMessage.StdId >= 0)&&(CANRxMessage.StdId <= 3)){
-            if ((CANRxMessage.Data[0]==6)&&(CANRxMessage.Data[2]==0x96)&&(CANRxMessage.Data[3]==0x80)&&(CANRxMessage.Data[4]==0)){
-                TransmitStatus[CANRxMessage.StdId] = 1;
-            }else{
-                //TODO return message Error
-            }
-                 
-        }else{
-            //TODO Id Error
-        }
-        if(RcvrCounter==4){
-            if((TransmitStatus[0])&&(TransmitStatus[1])&&(TransmitStatus[2])&&(TransmitStatus[3])){
-                RcvrDone=1;
-            }else{
-                //TODO if receive more 4 times but some driver not got return.
-            }
-        }
-    }while(!RcvrDone);
+//    do{
+//        xStatus = xQueueReceive( xCANRcvQueue, &CANRxMessage, 10/portTICK_RATE_MS);
+//        if (xStatus==pdPASS){
+//            RcvrCounter++;
+//            
+//          DebugPrintf("id=%i\r\n", CANRxMessage.StdId);
+//          if (CANRxMessage.StdId <= 4){
+//              if ((CANRxMessage.Data[0]==6)&&(CANRxMessage.Data[2]==MLDS_EC)&&(CANRxMessage.Data[3]==MLDS_ACK)&&(CANRxMessage.Data[4]==0)){
+//                  TransmitStatus[(CANRxMessage.StdId-DevId)] = 1;
+//              }else{
+//                  //TODO return message Error
+//              }
+//                   
+//          }else{
+//              //TODO Id Error
+//          }
+//          if(RcvrCounter==4){
+//              if((TransmitStatus[0])&&(TransmitStatus[1])&&(TransmitStatus[2])&&(TransmitStatus[3])){
+//                  RcvrDone=1;
+//              }else{
+//                  //TODO if receive more 4 times but some driver not got return.
+//              }
+//          }
+//        }else{
+//            taskYIELD();
+//        }
+//    }while(!RcvrDone);
                  
     /*
         all 4 message sent and got return
@@ -189,9 +205,15 @@ void vCANMainTask( void *pvParameters )
 
     for( ; ; )
     {
+        if (TaskCounter<11) {
+            TaskCounter++;
+        } else {
+            TaskCounter = 0;
+        }
+      
         switch (TaskCounter){
             case 0:{
-                SetMotoCurrent();
+                SetMotoSpeed();
                 break;
             }
             case 1: {
@@ -200,12 +222,6 @@ void vCANMainTask( void *pvParameters )
             default:{
                 break;
             }
-        }
-        
-        if (TaskCounter == 10){
-            TaskCounter = 0;
-        } else {
-            TaskCounter++;
         }
         
     /* Run this task every 10 ms */
@@ -217,7 +233,7 @@ void vCANMainTask( void *pvParameters )
 /*****************************************************************************/
 /**
 *
-* Configures the CAN.
+* Configures the NVIC for CAN.
 *
 * @param	None
 *
@@ -226,10 +242,33 @@ void vCANMainTask( void *pvParameters )
 * @note		None
 *
 ******************************************************************************/
-void vCANConfigInitialise(void)
+static void NVIC_Config_CAN(void)
 {
-  GPIO_InitTypeDef  GPIO_InitStructure;
-  
+  NVIC_InitTypeDef  NVIC_InitStructure;
+  NVIC_InitStructure.NVIC_IRQChannel = CAN1_RX0_IRQn;
+  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY - 1;
+  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x0;
+  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+  NVIC_Init(&NVIC_InitStructure);
+}
+
+/*****************************************************************************/
+/**
+*
+* Configures the CAN Peripher, Interrupt, Queue and Task.
+*
+* @param	None
+*
+* @return	None
+*
+* @note		None
+*
+******************************************************************************/
+void CANInitialise(void)
+{
+  GPIO_InitTypeDef        GPIO_InitStructure;
+  CAN_InitTypeDef         CAN_InitStructure;
+  CAN_FilterInitTypeDef   CAN_FilterInitStructure; 
   /* CAN GPIOs configuration **************************************************/
 
   /* Enable GPIO clock */
@@ -259,17 +298,17 @@ void vCANConfigInitialise(void)
   CAN_InitStructure.CAN_TTCM = DISABLE;
   CAN_InitStructure.CAN_ABOM = DISABLE;
   CAN_InitStructure.CAN_AWUM = DISABLE;
-  CAN_InitStructure.CAN_NART = DISABLE;
+  CAN_InitStructure.CAN_NART = ENABLE;
   CAN_InitStructure.CAN_RFLM = DISABLE;
   CAN_InitStructure.CAN_TXFP = DISABLE;
   CAN_InitStructure.CAN_Mode = CAN_Mode_Normal;
   CAN_InitStructure.CAN_SJW = CAN_SJW_1tq;
 
   /* CAN Baudrate = PCLK1/((1+CAN_BS1+CAN_BS2)*CAN_Prescaler) 
-                  = 1MBps (CAN clocked at 40 MHz) */
+                  = 500KBps (CAN clocked at 42 MHz) */
   CAN_InitStructure.CAN_BS1 = CAN_BS1_5tq;
-  CAN_InitStructure.CAN_BS2 = CAN_BS2_4tq;
-  CAN_InitStructure.CAN_Prescaler = 4;
+  CAN_InitStructure.CAN_BS2 = CAN_BS2_6tq;
+  CAN_InitStructure.CAN_Prescaler = 7;
   CAN_Init(CANx, &CAN_InitStructure);
 
   /* CAN filter init */
@@ -286,30 +325,15 @@ void vCANConfigInitialise(void)
   
   /* Enable FIFO 0 message pending Interrupt */
   CAN_ITConfig(CANx, CAN_IT_FMP0, ENABLE);
-  
   NVIC_Config_CAN();
-}
-
-/*****************************************************************************/
-/**
-*
-* Configures the NVIC for CAN.
-*
-* @param	None
-*
-* @return	None
-*
-* @note		None
-*
-******************************************************************************/
-static void NVIC_Config_CAN(void)
-{
-  NVIC_InitTypeDef  NVIC_InitStructure;
-  NVIC_InitStructure.NVIC_IRQChannel = CAN1_RX0_IRQn;
-  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY - 1;
-  NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x0;
-  NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-  NVIC_Init(&NVIC_InitStructure);
+  
+  /* Creat the queue for CAN */
+  xCANRcvQueue = xQueueCreate( 8, sizeof(CanRxMsg) );
+  xCANTransQueue = xQueueCreate( 5, sizeof(CanTxMsg) );
+  	
+  /* Creat the CAN task*/
+  xTaskCreate( CANMsgSendTask, ( signed char * ) "CanSend", configMINIMAL_STACK_SIZE, NULL, CANMsgSend_TASK_PRIORITY, NULL );
+  xTaskCreate( vCANMainTask, ( signed char * ) "CanMain", configMINIMAL_STACK_SIZE, NULL, CANMain_TASK_PRIORITY, NULL );
 }
 
 /*****************************************************************************/
