@@ -25,7 +25,6 @@
 /************************** Variable Definitions *****************************/
 
 //global CAN transmit/receive buffer
-CanRxMsg CANRxMessage;
 xQueueHandle xCANRcvQueue, xCANTransQueue;
 
 /*****************************************************************************/
@@ -42,6 +41,7 @@ xQueueHandle xCANRcvQueue, xCANTransQueue;
 ******************************************************************************/
 void CANMsgRcvrfromIRQ (uint8_t FIFONumber)
 {
+    CanRxMsg CANRxMessage;
 	portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
 	
 	CAN_Receive(CANx, FIFONumber, &CANRxMessage);
@@ -82,6 +82,77 @@ CanTxMsg CANTxMsgFromQueue;
 /*****************************************************************************/
 /**
 *
+* @param	None
+*
+* @return	None
+*
+* @note		None
+*
+******************************************************************************/
+static void CANSendMsg(u32 Id, u8 Len, u8 Cmd, u8 *pData)
+{
+	u32 i;
+    portBASE_TYPE xStatus;
+	CanTxMsg CANTxMessage;
+	
+	/* SetUp CAN Msg */
+    CANTxMessage.StdId = Id;
+    CANTxMessage.ExtId = 0;
+    CANTxMessage.IDE = CAN_ID_STD;
+    CANTxMessage.RTR = CAN_RTR_DATA;
+    CANTxMessage.DLC = Len;
+    CANTxMessage.Data[0] = Len;
+    CANTxMessage.Data[1] = Id;
+    CANTxMessage.Data[2] = Cmd;
+    CANTxMessage.Data[3] = 0;
+    
+    for(i=4;i<Len;i++){
+    	CANTxMessage.Data[i] = *(pData+i-4);
+    }
+    
+    /* Send CAN Msg */
+    do{
+    	xStatus = xQueueSendToBack(xCANTransQueue, &CANTxMessage, 0);
+    }while (xStatus!=pdPASS);    
+}
+
+/*****************************************************************************/
+/**
+*
+* @param	None
+*
+* @return	None
+*
+* @note		None
+*
+******************************************************************************/
+void CANSelfTest(void)
+{
+    portBASE_TYPE xStatus;
+	CanRxMsg CANRxMessage;
+	u32 Id = SteeringMotorId+PosRightFront;
+	u8 Len = 4;
+	
+    CANSendMsg(Id, Len, MLDS_GDTY, NULL);
+    
+    /* Receive CAN Msg */
+    do{
+    	xStatus = xQueueReceive( xCANRcvQueue, &CANRxMessage, 10/portTICK_RATE_MS);
+    }while (xStatus!=pdPASS); 
+
+	if ((CANRxMessage.Data[0]==8)&&(CANRxMessage.Data[1]==Id)&&
+					(CANRxMessage.Data[2]==MLDS_GDTY)&&(CANRxMessage.Data[3]==MLDS_ACK)&&
+            (CANRxMessage.Data[4]==0x4E)){
+        DebugPrintf("CAN Selftest pass!\n");
+	}else{
+        DebugPrintf("CAN Selftest failed!\n");
+    	while(1){}
+	} 
+}
+
+/*****************************************************************************/
+/**
+*
 * Setup Moto Speed through CAN bus.
 *
 * @param  	None
@@ -93,52 +164,33 @@ CanTxMsg CANTxMsgFromQueue;
 ******************************************************************************/
 void SetMotoSpeed ( void ) 
 {
+	u32 Id = WheelMotorId+PosRightFront;
+	u8 Len = 8;
+	s32 Speed;
+	u8 *pData = (u8 *)(&Speed);
+	
     uint32_t i=0;
     portBASE_TYPE xStatus;
-    const uint32_t DevId=WheelMotorId;
-    int32_t Speed=0;
     uint16_t RemoteChannel_2;
+    
     uint8_t RcvrCounter=0;
-    u32 *PData;
     uint8_t TransmitStatus[4]={0, 0, 0, 0};
     uint8_t RcvrDone=0;
-    CanTxMsg CANTxMessage[4];
+    CanRxMsg CANRxMessage;
+    
     /*
         calculate the speed here
     */
     RemoteChannel_2=GetRemoteControl(2-1);
     Speed = (RemoteChannel_2-1440)/8;
-    if((Speed<5)&&(Speed>-5)){
+    if((Speed<3)&&(Speed>-3)){
         Speed=0;
     }
-    DebugPrintf("Speed=%i\n", Speed);    
-  
-    /*
-        send the message to driver by queue
-    */
+//    DebugPrintf("Speed=%i\n", Speed);    
+		
+    /* Send the message to driver */
 //    for (i=0;i<4;i++){
-        i=PosRightFront;
-        CANTxMessage[i].StdId = i+DevId;
-        CANTxMessage[i].ExtId = 0;
-        CANTxMessage[i].RTR = CAN_RTR_DATA;
-        CANTxMessage[i].IDE = CAN_ID_STD;
-        CANTxMessage[i].DLC = 8;
-        CANTxMessage[i].Data[0] = 8;       //len
-        CANTxMessage[i].Data[1] = i+DevId; //id
-        CANTxMessage[i].Data[2] = MLDS_V;  //func
-        CANTxMessage[i].Data[3] = 0;       //
-        CANTxMessage[i].Data[4] = 0;       //data:0
-        CANTxMessage[i].Data[5] = 0;       //
-        CANTxMessage[i].Data[6] = 0;       //
-        CANTxMessage[i].Data[7] = 0;       //
-        
-        PData = (u32 *)(&CANTxMessage[i].Data[4]);
-        *PData = Speed;
-
-        xStatus = xQueueSendToBack(xCANTransQueue, &CANTxMessage[i], 0);
-        if (xStatus!=pdPASS){
-        //error, queue full
-        }
+		CANSendMsg(Id, Len, MLDS_V, pData);
 //    }
     
     /*
@@ -180,6 +232,99 @@ void SetMotoSpeed ( void )
 /*****************************************************************************/
 /**
 *
+* Steering Motor Position Initialize.
+*
+* @param  	None
+*
+* @return	None
+*
+* @note		1:Get the Encoder Value.
+* 			2:Get the Steering Moto Position.
+* 			3:Move Sterring Moto to "Zero" Point.
+* 			4.Set this Position as driver "Zero" Point.
+* 			5.Initialize done.
+*
+******************************************************************************/
+void SteeringMotorPosInitializeTask(void *pvParameters)
+{
+    portTickType xLastWakeTime;
+	s16 Ack;
+	s32 SteeringMotorRightFrontEncoderValue;
+	s32 SteeringMotorRightFrontDriverValue;
+	u32 Id = SteeringMotorId+PosRightFront;
+	u8 Len = 4;
+    portBASE_TYPE xStatus;
+    CanRxMsg CANRxMessage;
+
+    xLastWakeTime = xTaskGetTickCount();
+    
+	for(;;){
+		SteeringMotorRightFrontEncoderValue=GetSteeringMotorPosition(PosRightFront);
+		
+		if(SteeringMotorRightFrontEncoderValue==0){
+	
+			Len=8;
+			CANSendMsg(Id, Len, MLDS_PO, (u8 *)(&SteeringMotorRightFrontEncoderValue));
+			
+			do{
+				xStatus = xQueueReceive( xCANRcvQueue, &CANRxMessage, 10/portTICK_RATE_MS);
+			}while (xStatus==pdPASS); 
+			
+			if ((CANRxMessage.StdId==Id)&&(CANRxMessage.Data[0]==8)&&(CANRxMessage.Data[1]==Id)&&
+					(CANRxMessage.Data[2]==MLDS_PO)&&(CANRxMessage.Data[3]==MLDS_ACK)){
+				Ack=(s16)(&CANRxMessage.Data[4]);
+			}else{
+			//TODO return message Error
+			}
+			if(Ack!=0){
+				//TODO driver setup error
+			}
+		    DebugPrintf("Right Front Steering Motor Initialize Done!\n");
+		    xSemaphoreGive(GetRobotMainSemaphore());
+			vTaskDelete(NULL);
+			
+		}else{
+			Len=4;
+			CANSendMsg(Id, Len, MLDS_GM, NULL);
+			
+			do{
+				xStatus = xQueueReceive( xCANRcvQueue, &CANRxMessage, 10/portTICK_RATE_MS);
+			}while (xStatus!=pdPASS); 
+			
+			if ((CANRxMessage.Data[0]==8)&&(CANRxMessage.Data[1]==Id)&&
+					(CANRxMessage.Data[2]==MLDS_GM)&&(CANRxMessage.Data[3]==MLDS_ACK)){
+				SteeringMotorRightFrontDriverValue=(s32)(CANRxMessage.Data[4]);
+			}else{
+			//TODO return message Error
+			}
+			
+			SteeringMotorRightFrontDriverValue+=(-SteeringMotorRightFrontEncoderValue);
+			
+			Len = 8;
+			CANSendMsg(Id, Len, MLDS_M, (u8 *)(&SteeringMotorRightFrontDriverValue));
+			
+			do{
+				xStatus = xQueueReceive( xCANRcvQueue, &CANRxMessage, 10/portTICK_RATE_MS);
+			}while (xStatus!=pdPASS); 
+			
+			if ((CANRxMessage.Data[0]==8)&&(CANRxMessage.Data[1]==Id)&&
+					(CANRxMessage.Data[2]==MLDS_M)&&(CANRxMessage.Data[3]==MLDS_ACK)){
+				Ack=(s16)(&CANRxMessage.Data[4]);
+			}else{
+			//TODO return message Error
+			}
+			if(Ack!=0){
+				//TODO driver setup error
+			}
+		}
+		
+		vTaskDelayUntil( &xLastWakeTime, 100 / portTICK_RATE_MS );
+	}
+}
+
+/*****************************************************************************/
+/**
+*
 * Main CAN Task, run every 10 ms.
 *		small tasks
 *		1. give the wheel motor current
@@ -196,7 +341,7 @@ void SetMotoSpeed ( void )
 * @note		None
 *
 ******************************************************************************/
-void vCANMainTask( void *pvParameters )
+void CANMainTask( void *pvParameters )
 {
     portTickType xLastWakeTime;
     uint8_t TaskCounter = 0;
@@ -225,7 +370,7 @@ void vCANMainTask( void *pvParameters )
         }
         
     /* Run this task every 10 ms */
-    vTaskDelayUntil( &xLastWakeTime, 100 / portTICK_RATE_MS );
+    vTaskDelayUntil( &xLastWakeTime, 10 / portTICK_RATE_MS );
     
     }
 }
@@ -246,7 +391,7 @@ static void NVIC_Config_CAN(void)
 {
   NVIC_InitTypeDef  NVIC_InitStructure;
   NVIC_InitStructure.NVIC_IRQChannel = CAN1_RX0_IRQn;
-  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY - 1;
+  NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY+1;
   NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x0;
   NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
   NVIC_Init(&NVIC_InitStructure);
@@ -333,7 +478,6 @@ void CANInitialise(void)
   	
   /* Creat the CAN task*/
   xTaskCreate( CANMsgSendTask, ( signed char * ) "CanSend", configMINIMAL_STACK_SIZE, NULL, CANMsgSend_TASK_PRIORITY, NULL );
-  xTaskCreate( vCANMainTask, ( signed char * ) "CanMain", configMINIMAL_STACK_SIZE, NULL, CANMain_TASK_PRIORITY, NULL );
 }
 
 /*****************************************************************************/

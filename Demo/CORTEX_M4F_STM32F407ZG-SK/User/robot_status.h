@@ -14,9 +14,19 @@
 #endif
 
 /***************************** Include Files *********************************/
-
- /* ST Driver includes. */
- #include "stm32f4xx_conf.h"
+ 
+/* Kernel includes. */
+#include "FreeRTOS.h"
+#include "task.h"
+#include "queue.h"
+#include "semphr.h"
+ 
+/* ST Driver includes. */
+#include "stm32f4xx_conf.h"
+ 
+/* Robot includes */
+#include "robot_encoder.h"
+#include "robot_driver.h"
  
 /************************** Constant Definitions *****************************/
  
@@ -25,7 +35,11 @@
 #define PosRightFront     1
 #define PosRightBack      2
 #define PosLeftBack       3
- 
+
+ /* Robot Main Status */
+#define PowerOn      		0
+
+#define RobotMain_TASK_PRIORITY				( tskIDLE_PRIORITY + 1UL )
 /**************************** Type Definitions *******************************/
  
 /* 轮毂电机 */
@@ -51,7 +65,7 @@ WheelMotor_4TypeDef;
 typedef struct
 {
   int32_t M;
-  uint16_t GP;           //位置信息，由SPI接口得到
+  s32 GP;           //位置信息，由SPI接口得到 ,取值范围-512~511
   int32_t GV;
   int16_t GC;
   int16_t GT;
@@ -106,9 +120,12 @@ Couplings_4TypeDef;
 
 /************************** Function Prototypes ******************************/
 
+void GreatRobotMainTask(void); 
 void SetSteeringMotorPosition(uint8_t Po, uint16_t GP);
+s32 GetSteeringMotorPosition(u8 Pos);
 void SetCouplingsPosition(uint8_t Po, uint16_t GP);
 void SetRemoteControl(uint8_t Channel, uint16_t Data);
+uint16_t GetRemoteControl(uint8_t Channel);
 
 #ifdef __cplusplus
 }

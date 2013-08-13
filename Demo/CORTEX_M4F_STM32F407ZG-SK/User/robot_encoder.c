@@ -133,6 +133,52 @@ static void SPIx_Read(uint8_t* pBuffer, uint8_t ReadAddr, uint16_t NumByteToRead
 /*****************************************************************************/
 /**
 *
+* @param	None
+*
+* @return	None
+*
+* @note		None
+*
+******************************************************************************/
+void SPISelfTest(void)
+{
+	u16 SpiBuffer16;
+	u8 SpiBuffer[2];
+	u8 i;
+		
+	SPIx_Read(SpiBuffer, 8, 2);
+    SpiBuffer16 = (SpiBuffer[0]<<8)+SpiBuffer[1];
+
+    if (SpiBuffer16==0){
+        DebugPrintf("EncoderSensorBoard is not power on!\n");
+    	while(1){}
+    }else if (SpiBuffer16==60000){
+        DebugPrintf("Remote Controller is not power on!\n");
+    	while(1){}
+	}else{
+        DebugPrintf("Spi Selftest pass!\n");
+    }
+
+    DebugPrintf("Load Initial Encoder Sensor Value to Local RAM.\n");
+	for(i=0;i<16;i++)
+	{     
+		SPIx_Read(SpiBuffer, i, 2);
+		SpiBuffer16 = (SpiBuffer[0]<<8)+SpiBuffer[1];
+		DebugPrintf("Channel %i: %i\n", i, SpiBuffer16);
+		
+		if (i < 5){
+			SetSteeringMotorPosition((i), SpiBuffer16);
+		} else if (i < 8){
+			SetCouplingsPosition((i-4), SpiBuffer16);
+		} else {
+			SetRemoteControl((i-8), SpiBuffer16);
+		}	
+	}
+} 
+
+/*****************************************************************************/
+/**
+*
 * Read the absolute encoder value and 2.4G remote control via SPI interface.
 * Each time only one channel data is read.
 * For total 16 data takes 160ms to refersh them all.
@@ -157,13 +203,12 @@ void EncoderRefershTask( void *pvParameters )
 	xLastWakeTime = xTaskGetTickCount();
 	
 	for(;;)
-	{       
-	  
+	{     
 		if (i<15) {i++;} 
 		else {i = 0;}
 		
 		SPIx_Read(SpiBuffer, i, 2);
-    SpiBuffer16 = (SpiBuffer[0]<<8)+SpiBuffer[1];
+		SpiBuffer16 = (SpiBuffer[0]<<8)+SpiBuffer[1];
 		
 		if (i < 5){
 			SetSteeringMotorPosition((i), SpiBuffer16);
@@ -172,12 +217,10 @@ void EncoderRefershTask( void *pvParameters )
 		} else {
 			SetRemoteControl((i-8), SpiBuffer16);
 		}
-	  
-//		vDebugPrintf("i:%i, d:%i\n", i, SpiBuffer16);
+		
 		vTaskDelayUntil( &xLastWakeTime, 10 / portTICK_RATE_MS );
 	}
 } 
-
 /*****************************************************************************/
 /**
 *
@@ -251,6 +294,4 @@ void EncoderInitialise(void)
 	/* Deselect : Chip Select high */
 	GPIO_SetBits(SPIx_CS_GPIO_PORT, SPIx_CS_PIN);
 	
-	xTaskCreate( EncoderRefershTask, ( signed char * ) "Encoder", configMINIMAL_STACK_SIZE, NULL, Encoder_TASK_PRIORITY, NULL );
-
 }

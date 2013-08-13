@@ -78,8 +78,6 @@
 #define mainBLOCK_Q_PRIORITY				( tskIDLE_PRIORITY + 2UL )
 #define mainCREATOR_TASK_PRIORITY			( tskIDLE_PRIORITY + 3UL )
 #define mainFLOP_TASK_PRIORITY				( tskIDLE_PRIORITY )
-
-#define EncoderSensorRefersh_TASK_PRIORITY				( tskIDLE_PRIORITY + 2UL )
    
 /* The LED used by the check timer. */
 #define mainCHECK_LED 						( 3UL )

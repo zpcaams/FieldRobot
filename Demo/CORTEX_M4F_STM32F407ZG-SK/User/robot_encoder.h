@@ -20,7 +20,10 @@
 
 /* ST Driver includes. */
 #include "stm32f4xx_conf.h"
-   	 
+ 
+/* Robot includes */
+#include "robot_status.h"
+ 
 /************************** Constant Definitions *****************************/
 
 
@@ -80,6 +83,7 @@
 
 void EncoderInitialise(void);
 void EncoderRefershTask( void *pvParameters );
+void SPISelfTest(void);
 
 /* USER Callbacks: This is function for which prototype only is declared in
    MEMS accelerometre driver and that should be implemented into user applicaiton. */  

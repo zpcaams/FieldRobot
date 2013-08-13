@@ -17,7 +17,7 @@
 
 /************************** Constant Definitions *****************************/
 #define DEBUG_QUEUE_SIZE			128
-#define DEBUG_TASK_PRIORITY			( tskIDLE_PRIORITY + 1UL )
+#define DEBUG_TASK_PRIORITY			( tskIDLE_PRIORITY + 4UL )
 
 /**************************** Type Definitions *******************************/
 
@@ -56,24 +56,24 @@ void UsartTask( void *pvParameters )
 		// pop them out and send them as quick as possible out the UART.
 		if( USART_GetFlagStatus( USARTx, USART_FLAG_TXE ) ) {
 			// We don't want to block forever - need to check on Rx too.
-			xStatus = xQueueReceive( xDebugQueue, &ch, 10 / portTICK_RATE_MS );
+			xStatus = xQueueReceive( xDebugQueue, &ch, portMAX_DELAY );
 			if( xStatus == pdPASS ) USART_SendData( USARTx, ch );
 		}
-		if ( USART_GetFlagStatus( USARTx, USART_FLAG_RXNE ) ) {
-			ch = USART_ReceiveData( USARTx );
-			// Handle Debug Console Commands Here.
-			switch ( ch ) {
-
-			// Alphabetical list of commands the console debugger responds to.
-
-			case '0':
-				break;
-			default:
-				break;
-			}
-		}
-
-		taskYIELD();
+//		if ( USART_GetFlagStatus( USARTx, USART_FLAG_RXNE ) ) {
+//			ch = USART_ReceiveData( USARTx );
+//			// Handle Debug Console Commands Here.
+//			switch ( ch ) {
+//
+//			// Alphabetical list of commands the console debugger responds to.
+//
+//			case '0':
+//				break;
+//			default:
+//				break;
+//			}
+//		}
+//
+//		taskYIELD();
 	}
 }
 

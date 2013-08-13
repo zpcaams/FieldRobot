@@ -227,13 +227,8 @@ int main(void)
 {
 	/* Configure the hardware ready to run the test. */
 	prvSetupHardware();
-        
-  xTaskCreate( EncoderRefershTask, ( signed char * ) "Encoder", configMINIMAL_STACK_SIZE, NULL, EncoderSensorRefersh_TASK_PRIORITY, NULL );
-        
-	/* The following function will only create more tasks and timers if
-	mainCREATE_SIMPLE_LED_FLASHER_DEMO_ONLY is set to 0 (at the top of this
-	file).  See the comments at the top of this file for more information. */
-	prvOptionallyCreateComprehensveTestApplication();
+       
+  GreatRobotMainTask();
 
 	/* Start the scheduler. */
 	vTaskStartScheduler();
