@@ -154,7 +154,7 @@ void SPISelfTest(void)
     	while(1){}
     }else if (SpiBuffer16==60000){
         DebugPrintf("Remote Controller is not power on!\n");
-    	while(1){}
+//    	while(1){}
 	}else{
         DebugPrintf("Spi Selftest pass!\n");
     }
@@ -217,7 +217,6 @@ void EncoderRefershTask( void *pvParameters )
 		} else {
 			SetRemoteControl((i-8), SpiBuffer16);
 		}
-		
 		vTaskDelayUntil( &xLastWakeTime, 10 / portTICK_RATE_MS );
 	}
 } 

@@ -66,6 +66,7 @@ s32 CnvtAbsEncoderVal(u16 Value, s16 Adj)
 	}else if(temp>511){
 		temp-=1024;
 	}
+	temp*=4;	//ËÄ±¶ÏßÊý
 	return temp;
 }
 /*****************************************************************************/
@@ -83,13 +84,17 @@ s32 CnvtAbsEncoderVal(u16 Value, s16 Adj)
 ******************************************************************************/
 void SetSteeringMotorPosition(u8 Pos, u16 Value)
 {
+	s32 temp;
+	
     switch (Pos){
         case PosLeftFront:{
             SteeringMotor.LeftFront.GP = CnvtAbsEncoderVal(Value, SMLF_ADJ);
             break;
         }
         case PosRightFront: {
-            SteeringMotor.RightFront.GP = CnvtAbsEncoderVal(Value, SMRF_ADJ);
+        	temp = CnvtAbsEncoderVal(Value, SMRF_ADJ);
+            SteeringMotor.RightFront.GP = temp;
+//			DebugPrintf("SMRF:%i\n", temp);
             break;
         }        
         case PosRightBack: {
@@ -232,6 +237,7 @@ uint16_t GetRemoteControl(uint8_t Channel)
 ******************************************************************************/
 void RobotMainTask (void *pvParameters)
 {
+    portBASE_TYPE xStatus;
     portTickType xLastWakeTime;
     xLastWakeTime = xTaskGetTickCount();
     
@@ -244,13 +250,23 @@ void RobotMainTask (void *pvParameters)
     	
     	xTaskCreate( SteeringMotorPosInitializeTask, ( signed char * ) "PosInit", 
     			configMINIMAL_STACK_SIZE, NULL, PositionInitialize_TASK_PRIORITY, NULL );
-    	xSemaphoreTake(xRobotMainSemaphore, portMAX_DELAY);
-      DebugPrintf("TakeSem before job done?\n");
-		     	
-    	xTaskCreate( CANMainTask, ( signed char * ) "CanMain", 
-    			configMINIMAL_STACK_SIZE, NULL, CANMain_TASK_PRIORITY, NULL );
-      
-      DebugPrintf("CANMainTask Created.\n");
+    	
+    	do{
+    		xStatus = xSemaphoreTake(xRobotMainSemaphore, 100/portTICK_RATE_MS);
+    		
+    	}while(xStatus!=pdTRUE);
+    	
+		DebugPrintf("xSemaphoreTake\n");
+				
+//		xTaskCreate( CANMainTask, ( signed char * ) "CanMain", 
+//				configMINIMAL_STACK_SIZE, NULL, CANMain_TASK_PRIORITY, NULL );
+
+		xTaskCreate( SteeringMotorPosTestTask, ( signed char * ) "SMT", 
+				configMINIMAL_STACK_SIZE, NULL, CANMain_TASK_PRIORITY, NULL );
+
+		DebugPrintf("SteeringMotorPosTestTask Created.\n");
+    while(1){
+    };
         vTaskDelayUntil( &xLastWakeTime, 10 / portTICK_RATE_MS );
     }
 }

@@ -238,11 +238,8 @@ void SetMotoSpeed ( void )
 *
 * @return	None
 *
-* @note		1:Get the Encoder Value.
-* 			2:Get the Steering Moto Position.
-* 			3:Move Sterring Moto to "Zero" Point.
-* 			4.Set this Position as driver "Zero" Point.
-* 			5.Initialize done.
+* @note		1:Get the Position from Encoder.
+* 			2:Set the Position using PO command.
 *
 ******************************************************************************/
 void SteeringMotorPosInitializeTask(void *pvParameters)
@@ -252,73 +249,88 @@ void SteeringMotorPosInitializeTask(void *pvParameters)
 	s32 SteeringMotorRightFrontEncoderValue;
 	s32 SteeringMotorRightFrontDriverValue;
 	u32 Id = SteeringMotorId+PosRightFront;
-	u8 Len = 4;
+	u8 Len;
     portBASE_TYPE xStatus;
     CanRxMsg CANRxMessage;
 
     xLastWakeTime = xTaskGetTickCount();
     
 	for(;;){
+		
 		SteeringMotorRightFrontEncoderValue=GetSteeringMotorPosition(PosRightFront);
 		
-		if(SteeringMotorRightFrontEncoderValue==0){
-	
-			Len=8;
-			CANSendMsg(Id, Len, MLDS_PO, (u8 *)(&SteeringMotorRightFrontEncoderValue));
-			
-			do{
-				xStatus = xQueueReceive( xCANRcvQueue, &CANRxMessage, 10/portTICK_RATE_MS);
-			}while (xStatus==pdPASS); 
-			
-			if ((CANRxMessage.StdId==Id)&&(CANRxMessage.Data[0]==8)&&(CANRxMessage.Data[1]==Id)&&
-					(CANRxMessage.Data[2]==MLDS_PO)&&(CANRxMessage.Data[3]==MLDS_ACK)){
-				Ack=(s16)(&CANRxMessage.Data[4]);
-			}else{
-			//TODO return message Error
-			}
-			if(Ack!=0){
-				//TODO driver setup error
-			}
-		    DebugPrintf("Right Front Steering Motor Initialize Done!\n");
-		    xSemaphoreGive(GetRobotMainSemaphore());
-			vTaskDelete(NULL);
-			
+		Len=8;
+		CANSendMsg(Id, Len, MLDS_PO, (u8 *)(&SteeringMotorRightFrontEncoderValue));
+		
+		do{
+			xStatus = xQueueReceive( xCANRcvQueue, &CANRxMessage, 10/portTICK_RATE_MS);
+		}while (xStatus==pdPASS); 
+		
+		if ((CANRxMessage.Data[0]==8)&&(CANRxMessage.Data[1]==Id)&&
+				(CANRxMessage.Data[2]==MLDS_PO)&&(CANRxMessage.Data[3]==MLDS_ACK)){
+			Ack=(s16)(&CANRxMessage.Data[4]);
 		}else{
-			Len=4;
-			CANSendMsg(Id, Len, MLDS_GM, NULL);
-			
-			do{
-				xStatus = xQueueReceive( xCANRcvQueue, &CANRxMessage, 10/portTICK_RATE_MS);
-			}while (xStatus!=pdPASS); 
-			
-			if ((CANRxMessage.Data[0]==8)&&(CANRxMessage.Data[1]==Id)&&
-					(CANRxMessage.Data[2]==MLDS_GM)&&(CANRxMessage.Data[3]==MLDS_ACK)){
-				SteeringMotorRightFrontDriverValue=(s32)(CANRxMessage.Data[4]);
-			}else{
-			//TODO return message Error
-			}
-			
-			SteeringMotorRightFrontDriverValue+=(-SteeringMotorRightFrontEncoderValue);
-			
-			Len = 8;
-			CANSendMsg(Id, Len, MLDS_M, (u8 *)(&SteeringMotorRightFrontDriverValue));
-			
-			do{
-				xStatus = xQueueReceive( xCANRcvQueue, &CANRxMessage, 10/portTICK_RATE_MS);
-			}while (xStatus!=pdPASS); 
-			
-			if ((CANRxMessage.Data[0]==8)&&(CANRxMessage.Data[1]==Id)&&
-					(CANRxMessage.Data[2]==MLDS_M)&&(CANRxMessage.Data[3]==MLDS_ACK)){
-				Ack=(s16)(&CANRxMessage.Data[4]);
-			}else{
-			//TODO return message Error
-			}
-			if(Ack!=0){
-				//TODO driver setup error
-			}
+		//TODO return message Error
 		}
+		if(Ack!=0){
+			//TODO driver setup error
+		}
+		DebugPrintf("Right Front Steering Motor Initialize Done!\n");
+		xSemaphoreGive(GetRobotMainSemaphore());
+		vTaskDelete(NULL);
 		
 		vTaskDelayUntil( &xLastWakeTime, 100 / portTICK_RATE_MS );
+	}
+}
+
+/*****************************************************************************/
+/**
+*
+* Steering Motor Position Test Task.
+*
+* @param  	None
+*
+* @return	None
+*
+* @note		Print Position Get from Encoder and Driver.
+*
+******************************************************************************/
+void SteeringMotorPosTestTask(void *pvParameters)
+{
+    portTickType xLastWakeTime;
+	s32 SteeringMotorRightFrontEncoderValue;
+	s32 SteeringMotorRightFrontDriverValue;
+	u32 Id = SteeringMotorId+PosRightFront;
+	u8 Len;
+    portBASE_TYPE xStatus;
+    CanRxMsg CANRxMessage;
+
+    xLastWakeTime = xTaskGetTickCount();
+    
+	for(;;){
+		
+		Len=4;
+		CANSendMsg(Id, Len, MLDS_GM, NULL);
+		
+		do{
+			xStatus = xQueueReceive( xCANRcvQueue, &CANRxMessage, 10/portTICK_RATE_MS);
+		}while (xStatus==pdPASS); 
+		
+		if ((CANRxMessage.Data[0]==8)&&(CANRxMessage.Data[1]==Id)&&
+				(CANRxMessage.Data[2]==MLDS_GM)&&(CANRxMessage.Data[3]==MLDS_ACK)){
+			SteeringMotorRightFrontDriverValue=*(s32 *)(&CANRxMessage.Data[4]);
+		}else{
+		//TODO return message Error
+		}
+
+		SteeringMotorRightFrontEncoderValue=GetSteeringMotorPosition(PosRightFront);
+    
+    SteeringMotorRightFrontEncoderValue/=4;
+		SteeringMotorRightFrontDriverValue/=4;
+    
+		DebugPrintf("SMRF:%i %i\n", SteeringMotorRightFrontEncoderValue, SteeringMotorRightFrontDriverValue);
+		
+		vTaskDelayUntil( &xLastWakeTime, 300 / portTICK_RATE_MS );
 	}
 }
 

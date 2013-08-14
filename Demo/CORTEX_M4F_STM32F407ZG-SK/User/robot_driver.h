@@ -77,6 +77,7 @@ void CANMsgSendTask (void *pvParameters);
 void CANSelfTest(void);
 void CANMainTask( void *pvParameters );
 void SteeringMotorPosInitializeTask(void *pvParameters);
+void SteeringMotorPosTestTask(void *pvParameters);
 
 #ifdef __cplusplus
 }
