@@ -143,36 +143,38 @@ static void SPIx_Read(uint8_t* pBuffer, uint8_t ReadAddr, uint16_t NumByteToRead
 void SPISelfTest(void)
 {
 	u16 SpiBuffer16;
-	u8 SpiBuffer[2];
+	u8 *pSpiBuffer=(u8 *)(&SpiBuffer16);
 	u8 i;
 		
-	SPIx_Read(SpiBuffer, 8, 2);
-    SpiBuffer16 = (SpiBuffer[0]<<8)+SpiBuffer[1];
-
-    if (SpiBuffer16==0){
-        DebugPrintf("EncoderSensorBoard is not power on!\n");
+	SPIx_Read(pSpiBuffer, 0x14, 2);
+    if (SpiBuffer16!=0xA55A){
+        DebugPrintf("FPGA board is not power on, SPI test failed!\n");
     	while(1){}
-    }else if (SpiBuffer16==60000){
-        DebugPrintf("Remote Controller is not power on!\n");
-//    	while(1){}
-	}else{
-        DebugPrintf("Spi Selftest pass!\n");
     }
 
+	SPIx_Read(pSpiBuffer, 0x8, 2);
+    if (SpiBuffer16==60000){
+        DebugPrintf("Remote Controller is not power on, SPI test failed!\n");
+//    	while(1){}
+	}
+
+	DebugPrintf("Spi Selftest pass!\n");
+
     DebugPrintf("Load Initial Encoder Sensor Value to Local RAM.\n");
-	for(i=0;i<16;i++)
+	for(i=0;i<0x14;i++)
 	{     
-		SPIx_Read(SpiBuffer, i, 2);
-		SpiBuffer16 = (SpiBuffer[0]<<8)+SpiBuffer[1];
+		SPIx_Read(pSpiBuffer, i, 2);
 		DebugPrintf("Channel %i: %i\n", i, SpiBuffer16);
 		
 		if (i < 5){
 			SetSteeringMotorPosition((i), SpiBuffer16);
 		} else if (i < 8){
 			SetCouplingsPosition((i-4), SpiBuffer16);
-		} else {
+		} else if (i<16){
 			SetRemoteControl((i-8), SpiBuffer16);
-		}	
+		}else{
+			SetAbsEncoderInt((i-16), SpiBuffer16);
+		}
 	}
 } 
 
@@ -197,25 +199,26 @@ void EncoderRefershTask( void *pvParameters )
 {
 	portTickType xLastWakeTime;
 	uint8_t i = 0;
-	uint16_t SpiBuffer16;
-	uint8_t SpiBuffer[2];
-	
+	u16 SpiBuffer16;
+	u8 *pSpiBuffer=(u8 *)(&SpiBuffer16);
+  
 	xLastWakeTime = xTaskGetTickCount();
 	
 	for(;;)
 	{     
-		if (i<15) {i++;} 
+		if (i<0x14) {i++;} 
 		else {i = 0;}
 		
-		SPIx_Read(SpiBuffer, i, 2);
-		SpiBuffer16 = (SpiBuffer[0]<<8)+SpiBuffer[1];
+		SPIx_Read(pSpiBuffer, i, 2);
 		
 		if (i < 5){
 			SetSteeringMotorPosition((i), SpiBuffer16);
 		} else if (i < 8){
 			SetCouplingsPosition((i-4), SpiBuffer16);
-		} else {
+		} else if (i<16){
 			SetRemoteControl((i-8), SpiBuffer16);
+		}else{
+			SetAbsEncoderInt((i-16), SpiBuffer16);
 		}
 		vTaskDelayUntil( &xLastWakeTime, 10 / portTICK_RATE_MS );
 	}

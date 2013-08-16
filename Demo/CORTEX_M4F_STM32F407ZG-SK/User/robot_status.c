@@ -52,6 +52,8 @@ static uint16_t                 RemoteControl[8];
 /* »úÆ÷ÈË×´Ì¬ */
 static u32						RobotMainStatus;
 
+static u16 						AbsEncoderInt[4];
+
 xSemaphoreHandle GetRobotMainSemaphore(void)
 {
 	return xRobotMainSemaphore;
@@ -208,6 +210,15 @@ uint16_t GetRemoteControl(uint8_t Channel)
 	return RemoteControl[Channel];
 }
 
+void SetAbsEncoderInt(uint8_t Channel, uint16_t Data)
+{
+	AbsEncoderInt[Channel] = Data;  
+}
+
+u16 GetAbsEncoderInt(uint8_t Channel)
+{
+	return AbsEncoderInt[Channel];
+}
 /*****************************************************************************/
 /**
 *
@@ -244,17 +255,18 @@ void RobotMainTask (void *pvParameters)
     for( ; ; )
     {
     	SPISelfTest();
+    	DebugPrintf("Create Encoder Refersh Task\n");
     	xTaskCreate( EncoderRefershTask, ( signed char * ) "Encoder", 
     			configMINIMAL_STACK_SIZE, NULL, Encoder_TASK_PRIORITY, NULL );
-    	CANSelfTest();
     	
+    	CANSelfTest();    	
     	xTaskCreate( SteeringMotorPosInitializeTask, ( signed char * ) "PosInit", 
     			configMINIMAL_STACK_SIZE, NULL, PositionInitialize_TASK_PRIORITY, NULL );
     	
     	do{
     		xStatus = xSemaphoreTake(xRobotMainSemaphore, 100/portTICK_RATE_MS);
     		
-    	}while(xStatus!=pdTRUE);
+    	}while(xStatus==pdTRUE);
     	
 		DebugPrintf("xSemaphoreTake\n");
 				

@@ -268,7 +268,7 @@ void SteeringMotorPosInitializeTask(void *pvParameters)
 		
 		if ((CANRxMessage.Data[0]==8)&&(CANRxMessage.Data[1]==Id)&&
 				(CANRxMessage.Data[2]==MLDS_PO)&&(CANRxMessage.Data[3]==MLDS_ACK)){
-			Ack=(s16)(&CANRxMessage.Data[4]);
+			Ack=*(s16 *)(&CANRxMessage.Data[4]);
 		}else{
 		//TODO return message Error
 		}
@@ -298,6 +298,7 @@ void SteeringMotorPosInitializeTask(void *pvParameters)
 void SteeringMotorPosTestTask(void *pvParameters)
 {
     portTickType xLastWakeTime;
+    u16 AbsEncoderInt;
 	s32 SteeringMotorRightFrontEncoderValue;
 	s32 SteeringMotorRightFrontDriverValue;
 	u32 Id = SteeringMotorId+PosRightFront;
@@ -324,11 +325,13 @@ void SteeringMotorPosTestTask(void *pvParameters)
 		}
 
 		SteeringMotorRightFrontEncoderValue=GetSteeringMotorPosition(PosRightFront);
-    
-    SteeringMotorRightFrontEncoderValue/=4;
+		AbsEncoderInt = GetAbsEncoderInt(PosRightFront);
+		
+		SteeringMotorRightFrontEncoderValue/=4;
 		SteeringMotorRightFrontDriverValue/=4;
     
-		DebugPrintf("SMRF:%i %i\n", SteeringMotorRightFrontEncoderValue, SteeringMotorRightFrontDriverValue);
+		DebugPrintf("SMRF:%i %i %i\n", SteeringMotorRightFrontEncoderValue, 
+				SteeringMotorRightFrontDriverValue, AbsEncoderInt);
 		
 		vTaskDelayUntil( &xLastWakeTime, 300 / portTICK_RATE_MS );
 	}

@@ -126,6 +126,9 @@ s32 GetSteeringMotorPosition(u8 Pos);
 void SetCouplingsPosition(uint8_t Po, uint16_t GP);
 void SetRemoteControl(uint8_t Channel, uint16_t Data);
 uint16_t GetRemoteControl(uint8_t Channel);
+xSemaphoreHandle GetRobotMainSemaphore(void);
+void SetPluseCounterQ(uint8_t Channel, uint16_t Data);
+u16 GetPluseCounterQ(uint8_t Channel);
 
 #ifdef __cplusplus
 }
