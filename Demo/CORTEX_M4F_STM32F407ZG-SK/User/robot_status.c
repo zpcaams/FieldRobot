@@ -256,29 +256,28 @@ void RobotMainTask (void *pvParameters)
     {
     	SPISelfTest();
     	DebugPrintf("Create Encoder Refersh Task\n");
-    	xTaskCreate( EncoderRefershTask, ( signed char * ) "Encoder", 
+    	xTaskCreate( EncoderRefershTask, ( signed char * ) "Encoder",
     			configMINIMAL_STACK_SIZE, NULL, Encoder_TASK_PRIORITY, NULL );
     	
     	CANSelfTest();    	
-    	xTaskCreate( SteeringMotorPosInitializeTask, ( signed char * ) "PosInit", 
+    	xTaskCreate( SteeringMotorPosInitializeTask, ( signed char * ) "PosInit",
     			configMINIMAL_STACK_SIZE, NULL, PositionInitialize_TASK_PRIORITY, NULL );
     	
     	do{
     		xStatus = xSemaphoreTake(xRobotMainSemaphore, 100/portTICK_RATE_MS);
-    		
     	}while(xStatus==pdTRUE);
-    	
-		DebugPrintf("xSemaphoreTake\n");
 				
-//		xTaskCreate( CANMainTask, ( signed char * ) "CanMain", 
-//				configMINIMAL_STACK_SIZE, NULL, CANMain_TASK_PRIORITY, NULL );
-
-		xTaskCreate( SteeringMotorPosTestTask, ( signed char * ) "SMT", 
+		xTaskCreate( CANMainTask, ( signed char * ) "CanMain",
 				configMINIMAL_STACK_SIZE, NULL, CANMain_TASK_PRIORITY, NULL );
 
-		DebugPrintf("SteeringMotorPosTestTask Created.\n");
-    while(1){
-    };
+//		xTaskCreate( SteeringMotorPosTestTask, ( signed char * ) "SMT",
+//				configMINIMAL_STACK_SIZE, NULL, CANMain_TASK_PRIORITY, NULL );
+
+//		DebugPrintf("SteeringMotorPosTestTask Created.\n");
+    	do{
+    		xStatus = xSemaphoreTake(xRobotMainSemaphore, portMAX_DELAY);
+    	}while(xStatus==pdTRUE);
+    	
         vTaskDelayUntil( &xLastWakeTime, 10 / portTICK_RATE_MS );
     }
 }

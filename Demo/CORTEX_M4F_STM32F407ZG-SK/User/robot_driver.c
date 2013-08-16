@@ -144,10 +144,24 @@ void CANSelfTest(void)
 					(CANRxMessage.Data[2]==MLDS_GDTY)&&(CANRxMessage.Data[3]==MLDS_ACK)&&
             (CANRxMessage.Data[4]==0x4E)){
         DebugPrintf("CAN Selftest pass!\n");
+        return;
+	}else{
+        DebugPrintf("First CAN Message may not correct, test again.\n");
+	} 
+	
+    CANSendMsg(Id, Len, MLDS_GDTY, NULL);
+    do{
+    	xStatus = xQueueReceive( xCANRcvQueue, &CANRxMessage, 10/portTICK_RATE_MS);
+    }while (xStatus!=pdPASS); 
+
+	if ((CANRxMessage.Data[0]==8)&&(CANRxMessage.Data[1]==Id)&&
+					(CANRxMessage.Data[2]==MLDS_GDTY)&&(CANRxMessage.Data[3]==MLDS_ACK)&&
+            (CANRxMessage.Data[4]==0x4E)){
+        DebugPrintf("CAN Selftest pass!\n");
 	}else{
         DebugPrintf("CAN Selftest failed!\n");
     	while(1){}
-	} 
+	}
 }
 
 /*****************************************************************************/
@@ -162,12 +176,13 @@ void CANSelfTest(void)
 * @note		None
 *
 ******************************************************************************/
-void SetMotoSpeed ( void ) 
+void SetWheelMotoSpeed ( void ) 
 {
-	u32 Id = WheelMotorId+PosRightFront;
-	u8 Len = 8;
+	u32 Id;
+	u8 Len;
 	s32 Speed;
 	u8 *pData = (u8 *)(&Speed);
+	s16 Ack;
 	
     uint32_t i=0;
     portBASE_TYPE xStatus;
@@ -186,47 +201,86 @@ void SetMotoSpeed ( void )
     if((Speed<3)&&(Speed>-3)){
         Speed=0;
     }
-//    DebugPrintf("Speed=%i\n", Speed);    
+    DebugPrintf("Speed=%i\n", Speed);    
 		
     /* Send the message to driver */
-//    for (i=0;i<4;i++){
-		CANSendMsg(Id, Len, MLDS_V, pData);
-//    }
+	Id = WheelMotorId+PosRightFront;
+	Len = 8;
+	CANSendMsg(Id, Len, MLDS_V, pData);
+	
+	/* Wait for return */    
+	xStatus = xQueueReceive( xCANRcvQueue, &CANRxMessage, 10/portTICK_RATE_MS);
+	if (xStatus==pdPASS){
+		if ((CANRxMessage.Data[0]==6)&&(CANRxMessage.Data[1]==Id)&&
+				(CANRxMessage.Data[2]==MLDS_V)&&(CANRxMessage.Data[3]==MLDS_ACK)){
+			Ack=*(s16 *)(&CANRxMessage.Data[4]);
+			if(Ack!=0){
+			//TODO driver setup error
+				DebugPrintf("Ack Error in Speed\n");  
+			}
+			return;
+		}else{
+		//TODO return message Error
+			DebugPrintf("CAN Error in Speed\n");
+		}
+	} 
+	DebugPrintf("CAN Error NO Receive in Speed\n");
+}
+
+/*****************************************************************************/
+/**
+*
+* Setup Steering Moto Position through CAN bus.
+* Position info from Remote Control Channel 1.
+*
+* @param  	None
+*
+* @return	None
+*
+* @note		None
+*
+******************************************************************************/
+void SetSteeringMotorPos ( void ) 
+{
+	u32 Id;
+	u8 Len;
+	s32 Position;
+	u8 *pData = (u8 *)(&Position);
+	s16 Ack;
+	
+    uint32_t i=0;
+    portBASE_TYPE xStatus;
+    uint16_t RemoteChannel_1;
     
-    /*
-        wait for return
-    */    
-//    do{
-//        xStatus = xQueueReceive( xCANRcvQueue, &CANRxMessage, 10/portTICK_RATE_MS);
-//        if (xStatus==pdPASS){
-//            RcvrCounter++;
-//            
-//          DebugPrintf("id=%i\r\n", CANRxMessage.StdId);
-//          if (CANRxMessage.StdId <= 4){
-//              if ((CANRxMessage.Data[0]==6)&&(CANRxMessage.Data[2]==MLDS_EC)&&(CANRxMessage.Data[3]==MLDS_ACK)&&(CANRxMessage.Data[4]==0)){
-//                  TransmitStatus[(CANRxMessage.StdId-DevId)] = 1;
-//              }else{
-//                  //TODO return message Error
-//              }
-//                   
-//          }else{
-//              //TODO Id Error
-//          }
-//          if(RcvrCounter==4){
-//              if((TransmitStatus[0])&&(TransmitStatus[1])&&(TransmitStatus[2])&&(TransmitStatus[3])){
-//                  RcvrDone=1;
-//              }else{
-//                  //TODO if receive more 4 times but some driver not got return.
-//              }
-//          }
-//        }else{
-//            taskYIELD();
-//        }
-//    }while(!RcvrDone);
-                 
-    /*
-        all 4 message sent and got return
-    */
+    CanRxMsg CANRxMessage;
+    
+    /* Calculate the Position here */
+    RemoteChannel_1=GetRemoteControl(1-1);
+    Position = -(RemoteChannel_1-1462);
+    
+    DebugPrintf("Position=%i\n", Position);    
+		
+    Id = SteeringMotorId+PosRightFront;
+    Len = 8;
+	CANSendMsg(Id, Len, MLDS_M, pData);
+    
+    /* Wait for return */
+	xStatus = xQueueReceive( xCANRcvQueue, &CANRxMessage, 10/portTICK_RATE_MS);
+	if (xStatus==pdPASS){
+		if ((CANRxMessage.Data[0]==6)&&(CANRxMessage.Data[1]==Id)&&
+				(CANRxMessage.Data[2]==MLDS_M)&&(CANRxMessage.Data[3]==MLDS_ACK)){
+			Ack=*(s16 *)(&CANRxMessage.Data[4]);
+			if(Ack!=0){
+			//TODO driver setup error
+				DebugPrintf("Ack Error in Pos\n");    
+			}
+			return;
+		}else{
+		//TODO return message Error
+			DebugPrintf("CAN Error in Pos\n");
+		}
+	}
+	DebugPrintf("CAN Error NO Receive in Pos\n");
 }
 
 /*****************************************************************************/
@@ -269,11 +323,11 @@ void SteeringMotorPosInitializeTask(void *pvParameters)
 		if ((CANRxMessage.Data[0]==8)&&(CANRxMessage.Data[1]==Id)&&
 				(CANRxMessage.Data[2]==MLDS_PO)&&(CANRxMessage.Data[3]==MLDS_ACK)){
 			Ack=*(s16 *)(&CANRxMessage.Data[4]);
+			if(Ack!=0){
+			//TODO driver setup error
+			}
 		}else{
 		//TODO return message Error
-		}
-		if(Ack!=0){
-			//TODO driver setup error
 		}
 		DebugPrintf("Right Front Steering Motor Initialize Done!\n");
 		xSemaphoreGive(GetRobotMainSemaphore());
@@ -373,10 +427,11 @@ void CANMainTask( void *pvParameters )
       
         switch (TaskCounter){
             case 0:{
-                SetMotoSpeed();
+            	SetSteeringMotorPos();
                 break;
             }
             case 1: {
+            	SetWheelMotoSpeed();
                 break;
             }
             default:{
@@ -458,7 +513,7 @@ void CANInitialise(void)
   CAN_InitStructure.CAN_TTCM = DISABLE;
   CAN_InitStructure.CAN_ABOM = DISABLE;
   CAN_InitStructure.CAN_AWUM = DISABLE;
-  CAN_InitStructure.CAN_NART = ENABLE;
+  CAN_InitStructure.CAN_NART = DISABLE;
   CAN_InitStructure.CAN_RFLM = DISABLE;
   CAN_InitStructure.CAN_TXFP = DISABLE;
   CAN_InitStructure.CAN_Mode = CAN_Mode_Normal;
