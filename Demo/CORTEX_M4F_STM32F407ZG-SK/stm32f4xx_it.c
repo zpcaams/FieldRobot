@@ -44,7 +44,6 @@
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
-
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
 
@@ -164,7 +163,10 @@ __weak void SysTick_Handler(void)
   */
 void CAN1_RX0_IRQHandler(void)
 {
-    CANMsgRcvrfromIRQ(CAN_FIFO0);
+	portBASE_TYPE xHigherPriorityTaskWoken;
+	xHigherPriorityTaskWoken = pdFALSE;
+	xSemaphoreGiveFromISR(GetCAN1RX0Semaphore(), &xHigherPriorityTaskWoken);
+	portEND_SWITCHING_ISR(&xHigherPriorityTaskWoken);
 }
 #endif  /* USE_CAN1 */
 

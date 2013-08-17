@@ -62,6 +62,7 @@
  
 /* CAN Task Priority Setup */
 #define CANMsgSend_TASK_PRIORITY				    ( tskIDLE_PRIORITY + 4UL )
+#define CANMsgRcvr_TASK_PRIORITY				    ( tskIDLE_PRIORITY + 4UL )
 #define PositionInitialize_TASK_PRIORITY				    ( tskIDLE_PRIORITY + 3UL )
 #define CANMain_TASK_PRIORITY				        ( tskIDLE_PRIORITY + 3UL )
    
@@ -70,10 +71,9 @@
 /***************** Macros (Inline Functions) Definitions *********************/
 
 /************************** Function Prototypes ******************************/
-void CANMsgRcvrfromIRQ(uint8_t FIFONumber);
 void CANInitialise(void);
+xSemaphoreHandle GetCAN1RX0Semaphore(void);
 void Init_RxMes(CanRxMsg *RxMessage);
-void CANMsgSendTask (void *pvParameters);
 void CANSelfTest(void);
 void CANMainTask( void *pvParameters );
 void SteeringMotorPosInitializeTask(void *pvParameters);

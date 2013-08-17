@@ -24,57 +24,67 @@
 
 /************************** Variable Definitions *****************************/
 
-//global CAN transmit/receive buffer
-xQueueHandle xCANRcvQueue, xCANTransQueue;
+static xQueueHandle xCANRcvQueue, xCANTransQueue;
+static xSemaphoreHandle xCAN1RX0Semaphore;
 
+xSemaphoreHandle GetCAN1RX0Semaphore(void)
+{
+	return xCAN1RX0Semaphore;
+}
 /*****************************************************************************/
 /**
 *
-* Interrupt service. Reveived the CAN message and sent to queue.
+* CAN Receive Message Task
 *
-* @param  	FIFONumber : FIFO0 or FIFO1.
+* @param  	None
 *
 * @return	None
 *
-* @note		None
+* @note		Task Unblock when CAN1 RX0 Interrupt happened.
+* 			Read the CAN_FIFO0 Message to Local RAM,
+* 			Send it to CAN Receive Queue.
 *
 ******************************************************************************/
-void CANMsgRcvrfromIRQ (uint8_t FIFONumber)
+static void CANMsgRcvrTask (void *pvParameters)
 {
     CanRxMsg CANRxMessage;
-	portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
 	
-	CAN_Receive(CANx, FIFONumber, &CANRxMessage);
-	xQueueSendToBackFromISR( xCANRcvQueue, &CANRxMessage, &xHigherPriorityTaskWoken);
-	portEND_SWITCHING_ISR( xHigherPriorityTaskWoken );
+    for(;;){
+		if(xSemaphoreTake(xCAN1RX0Semaphore, portMAX_DELAY)==pdTRUE){
+			CAN_Receive(CANx, CAN_FIFO0, &CANRxMessage);
+			/* 
+			 * Under the Robot Task control, Receive Queue is not able to Full.
+			 * So xTicksToWait is set 0 here;
+			 */
+			xQueueSendToBack(xCANRcvQueue, &CANRxMessage, 0);
+		}
+    }
 }
 
 /*****************************************************************************/
 /**
 *
-* Send the CAN message if queue is not blocked.
+* CAN Send Message Task
 *
-* @param  	FIFONumber : FIFO0 or FIFO1.
+* @param  	None
 *
 * @return	None
 *
-* @note		None
+* @note		Task Unblock when Queue is NOT Empty.
+* 			Send the Message to CAN bus.
 *
 ******************************************************************************/
-void CANMsgSendTask (void *pvParameters)
+static void CANMsgSendTask (void *pvParameters)
 {
-uint32_t Status;
-portBASE_TYPE xStatus;
-CanTxMsg CANTxMsgFromQueue;
+	CanTxMsg CANTxMsgFromQueue;
 
     for(;;){
-    	// As long as there are can messages in the queue fifo, this code should
-		// pop them out and send them as quick as possible out the CAN bus.
-        xStatus = xQueueReceive(xCANTransQueue, &CANTxMsgFromQueue, portMAX_DELAY);
-        if (xStatus==pdPASS){
-            do{
-                Status = CAN_Transmit(CANx, &CANTxMsgFromQueue);
-            }while(Status == CAN_TxStatus_NoMailBox);
+        if (xQueueReceive(xCANTransQueue, &CANTxMsgFromQueue, portMAX_DELAY)==pdPASS){
+			/* 
+			 * Under the Robot Task control, MailBox is not able to Full.
+			 * So We Don't Check Return Here.
+			 */
+			CAN_Transmit(CANx, &CANTxMsgFromQueue);
         }
     }
 }
@@ -544,10 +554,14 @@ void CANInitialise(void)
   
   /* Creat the queue for CAN */
   xCANRcvQueue = xQueueCreate( 8, sizeof(CanRxMsg) );
-  xCANTransQueue = xQueueCreate( 5, sizeof(CanTxMsg) );
+  xCANTransQueue = xQueueCreate( 4, sizeof(CanTxMsg) );
   	
-  /* Creat the CAN task*/
-  xTaskCreate( CANMsgSendTask, ( signed char * ) "CanSend", configMINIMAL_STACK_SIZE, NULL, CANMsgSend_TASK_PRIORITY, NULL );
+  /* Creat the CAN Semaphore and Send/Receive Task */
+  vSemaphoreCreateBinary(xCAN1RX0Semaphore);
+  xTaskCreate( CANMsgSendTask, ( signed char * ) "Can1Send", 
+		  configMINIMAL_STACK_SIZE, NULL, CANMsgSend_TASK_PRIORITY, NULL );
+  xTaskCreate( CANMsgRcvrTask, ( signed char * ) "Can1Rcvr", 
+		  configMINIMAL_STACK_SIZE, NULL, CANMsgRcvr_TASK_PRIORITY, NULL );
 }
 
 /*****************************************************************************/
