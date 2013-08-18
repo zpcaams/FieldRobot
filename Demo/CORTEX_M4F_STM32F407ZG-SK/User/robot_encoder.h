@@ -14,6 +14,12 @@
 #endif
 
 /***************************** Include Files *********************************/
+
+/* Kernel includes. */
+#include "FreeRTOS.h"
+#include "task.h"
+#include "queue.h"
+#include "semphr.h"
  
  /* Debug Printf. */
 #include "robot_debug.h"
@@ -25,21 +31,6 @@
 #include "robot_status.h"
  
 /************************** Constant Definitions *****************************/
-
-
-/* Uncomment the following line to use the default Encoder_TIMEOUT_UserCallback() 
-   function implemented in stm32f4_discovery_Encoder.c file.
-   Encoder_TIMEOUT_UserCallback() function is called whenever a timeout condition 
-   occure during communication (waiting transmit data register empty flag(TXE)
-   or waiting receive data register is not empty flag (RXNE)). */   
-#define USE_DEFAULT_TIMEOUT_CALLBACK 
-
-/* Maximum Timeout values for flags waiting loops. These timeouts are not based
-   on accurate values, they just guarantee that the application will not remain
-   stuck if the SPI communication is corrupted.
-   You may modify these timeout values depending on CPU frequency and application
-   conditions (interrupts routines ...). */   
-#define SPIx_FLAG_TIMEOUT         ((uint32_t)0x1000)
 
 /**
   * @brief  SPI Interface pins
@@ -69,32 +60,29 @@
 #define SPIx_CS_GPIO_PORT          GPIOB                       /* GPIOB */
 #define SPIx_CS_GPIO_CLK           RCC_AHB1Periph_GPIOB
 
-
-#define Encoder_TASK_PRIORITY				        ( tskIDLE_PRIORITY + 2UL )
+#define SPIx_DMA                   	DMA1
+#define SPIx_DMA_CLK               	RCC_AHB1Periph_DMA1
+#define SPIx_TX_DMA_CHANNEL        	DMA_Channel_0
+#define SPIx_TX_DMA_STREAM         	DMA1_Stream4
+#define SPIx_TX_DMA_FLAG_TCIF      	DMA_FLAG_TCIF4
+#define SPIx_RX_DMA_CHANNEL        	DMA_Channel_0
+#define DMA_STREAM_IRQ           	DMA1_Stream3_IRQn
+#define SPIx_RX_DMA_STREAM         	DMA1_Stream3
+#define SPIx_RX_DMA_FLAG_TCIF      	DMA_FLAG_TCIF3
+#define DMA_STREAM_IRQHANDLER    	DMA1_Stream3_IRQHandler
+#define SPIx_DMA_BUFFER_SIZE       	(0x15*3)
+ 
+#define Encoder_TASK_PRIORITY		( tskIDLE_PRIORITY + 3UL )
  
 /**************************** Type Definitions *******************************/
 
 /***************** Macros (Inline Functions) Definitions *********************/
-
-#define SPIx_CS_LOW()       GPIO_ResetBits(SPIx_CS_GPIO_PORT, SPIx_CS_PIN)
-#define SPIx_CS_HIGH()      GPIO_SetBits(SPIx_CS_GPIO_PORT, SPIx_CS_PIN)
 
 /************************** Function Prototypes ******************************/
 
 void EncoderInitialise(void);
 void EncoderRefershTask( void *pvParameters );
 void SPISelfTest(void);
-
-/* USER Callbacks: This is function for which prototype only is declared in
-   MEMS accelerometre driver and that should be implemented into user applicaiton. */  
-/* Encoder_TIMEOUT_UserCallback() function is called whenever a timeout condition 
-   occure during communication (waiting transmit data register empty flag(TXE)
-   or waiting receive data register is not empty flag (RXNE)).
-   You can use the default timeout callback implementation by uncommenting the 
-   define USE_DEFAULT_TIMEOUT_CALLBACK in stm32f4_discovery_Encoder.h file.
-   Typically the user implementation of this callback should reset MEMS peripheral
-   and re-initialize communication or in worst case reset all the application. */
-uint32_t SPIx_TIMEOUT_UserCallback(void);
 
 #ifdef __cplusplus
 }

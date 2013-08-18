@@ -44,6 +44,7 @@
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
+extern xSemaphoreHandle xSPIDMASemaphore;
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
 
@@ -188,6 +189,28 @@ void CAN2_RX0_IRQHandler(void)
 }
 #endif  /* USE_CAN2 */
 
+/**
+  * @brief  This function handles DMA Stream interrupt request.
+  * @param  None
+  * @retval None
+  */
+void DMA1_Stream3_IRQHandler(void)
+{
+	portBASE_TYPE xHigherPriorityTaskWoken;
+	xHigherPriorityTaskWoken = pdFALSE;
+	
+	/* Clear DMA Stream Transfer Complete interrupt pending bit */
+	DMA_ClearITPendingBit(SPIx_RX_DMA_STREAM, SPIx_RX_DMA_FLAG_TCIF);
+
+	/* Disable DMA SPI TX Stream */
+	DMA_Cmd(SPIx_TX_DMA_STREAM,DISABLE);
+	
+	/* Disable DMA SPI RX Stream */
+	DMA_Cmd(SPIx_RX_DMA_STREAM,DISABLE); 
+	
+	xSemaphoreGiveFromISR(xSPIDMASemaphore, &xHigherPriorityTaskWoken);
+	portEND_SWITCHING_ISR(&xHigherPriorityTaskWoken);
+}
 /**
   * @}
   */ 
