@@ -91,19 +91,24 @@ static void CANMsgSendTask (void *pvParameters)
 
 /*****************************************************************************/
 /**
-*
-* @param	None
+* Send Command to Driver
+* 
+* @param	Id		CAN Id of Target Driver
+* 			Len		Length of CAN Message
+* 			Cmd		Cmd to Sent, List in mlds_can.h
+* 			pData	Pointer Points Data to Sent
 *
 * @return	None
 *
 * @note		None
 *
 ******************************************************************************/
-static void CANSendMsg(u32 Id, u8 Len, u8 Cmd, u8 *pData)
+static void CANSendCmd(u32 Id, u8 Len, u8 Cmd, u8 *pData)
 {
 	u32 i;
     portBASE_TYPE xStatus;
 	CanTxMsg CANTxMessage;
+	CanRxMsg CANRxMessage;
 	
 	/* SetUp CAN Msg */
     CANTxMessage.StdId = Id;
@@ -121,9 +126,23 @@ static void CANSendMsg(u32 Id, u8 Len, u8 Cmd, u8 *pData)
     }
     
     /* Send CAN Msg */
-    do{
-    	xStatus = xQueueSendToBack(xCANTransQueue, &CANTxMessage, 0);
-    }while (xStatus!=pdPASS);    
+SEND_CAN_MSG:
+	xStatus = xQueueSendToBack(xCANTransQueue, &CANTxMessage, 0);
+	
+    /* Receive CAN Msg */
+	xStatus = xQueueReceive( xCANRcvQueue, &CANRxMessage, 5/portTICK_RATE_MS);
+	if (xStatus==pdPASS){
+		if ((CANRxMessage.Data[1]==Id)&&
+			(CANRxMessage.Data[2]==Cmd)&&
+			(CANRxMessage.Data[3]==MLDS_ACK)){
+			
+			if(pData!=NULL){
+				pData = &CANRxMessage.Data[4];
+			}
+			return;
+		}
+	}
+	goto SEND_CAN_MSG;
 }
 
 /*****************************************************************************/
@@ -138,40 +157,24 @@ static void CANSendMsg(u32 Id, u8 Len, u8 Cmd, u8 *pData)
 ******************************************************************************/
 void CANSelfTest(void)
 {
-    portBASE_TYPE xStatus;
-	CanRxMsg CANRxMessage;
-	u32 Id = SteeringMotorId+PosRightFront;
-	u8 Len = 4;
-	
-    CANSendMsg(Id, Len, MLDS_GDTY, NULL);
-    
-    /* Receive CAN Msg */
-    do{
-    	xStatus = xQueueReceive( xCANRcvQueue, &CANRxMessage, 10/portTICK_RATE_MS);
-    }while (xStatus!=pdPASS); 
+	u32 Id;
+	u8 Len;
+	u8 Data;
+	u8 i;
 
-	if ((CANRxMessage.Data[0]==8)&&(CANRxMessage.Data[1]==Id)&&
-					(CANRxMessage.Data[2]==MLDS_GDTY)&&(CANRxMessage.Data[3]==MLDS_ACK)&&
-            (CANRxMessage.Data[4]==0x4E)){
-        DebugPrintf("CAN Selftest pass!\n");
-        return;
-	}else{
-        DebugPrintf("First CAN Message may not correct, test again.\n");
-	} 
-	
-    CANSendMsg(Id, Len, MLDS_GDTY, NULL);
-    do{
-    	xStatus = xQueueReceive( xCANRcvQueue, &CANRxMessage, 10/portTICK_RATE_MS);
-    }while (xStatus!=pdPASS); 
-
-	if ((CANRxMessage.Data[0]==8)&&(CANRxMessage.Data[1]==Id)&&
-					(CANRxMessage.Data[2]==MLDS_GDTY)&&(CANRxMessage.Data[3]==MLDS_ACK)&&
-            (CANRxMessage.Data[4]==0x4E)){
-        DebugPrintf("CAN Selftest pass!\n");
-	}else{
-        DebugPrintf("CAN Selftest failed!\n");
-    	while(1){}
+	Id = SteeringMotorId+PosRightFront;
+	Len = 4;
+	for(i=0;i<2;i++){
+		CANSendCmd(Id, Len, MLDS_GDTY, &Data);
+		if(Data==0x4E){
+			DebugPrintf("CAN Selftest pass!\n");
+			return;
+		}
+		DebugPrintf("CAN Selftest failed, test again.\n");
 	}
+	
+    DebugPrintf("CAN Selftest failed!\n");
+	while(1);
 }
 
 /*****************************************************************************/
@@ -191,17 +194,9 @@ void SetWheelMotoSpeed ( void )
 	u32 Id;
 	u8 Len;
 	s32 Speed;
-	u8 *pData = (u8 *)(&Speed);
+	u8 *pData;
 	s16 Ack;
-	
-    uint32_t i=0;
-    portBASE_TYPE xStatus;
     uint16_t RemoteChannel_2;
-    
-    uint8_t RcvrCounter=0;
-    uint8_t TransmitStatus[4]={0, 0, 0, 0};
-    uint8_t RcvrDone=0;
-    CanRxMsg CANRxMessage;
     
     /*
         calculate the speed here
@@ -216,25 +211,13 @@ void SetWheelMotoSpeed ( void )
     /* Send the message to driver */
 	Id = WheelMotorId+PosRightFront;
 	Len = 8;
-	CANSendMsg(Id, Len, MLDS_V, pData);
+	pData = (u8 *)(&Speed);
 	
-	/* Wait for return */    
-	xStatus = xQueueReceive( xCANRcvQueue, &CANRxMessage, 10/portTICK_RATE_MS);
-	if (xStatus==pdPASS){
-		if ((CANRxMessage.Data[0]==6)&&(CANRxMessage.Data[1]==Id)&&
-				(CANRxMessage.Data[2]==MLDS_V)&&(CANRxMessage.Data[3]==MLDS_ACK)){
-			Ack=*(s16 *)(&CANRxMessage.Data[4]);
-			if(Ack!=0){
-			//TODO driver setup error
-				DebugPrintf("Ack Error in Speed\n");  
-			}
-			return;
-		}else{
-		//TODO return message Error
-			DebugPrintf("CAN Error in Speed\n");
-		}
-	} 
-	DebugPrintf("CAN Error NO Receive in Speed\n");
+	CANSendCmd(Id, Len, MLDS_V, pData);	
+	Ack = *(s16 *)(&pData);
+	if(Ack!=0){
+		DebugPrintf("Ack Error\n"); 
+	}
 }
 
 /*****************************************************************************/
@@ -255,14 +238,9 @@ void SetSteeringMotorPos ( void )
 	u32 Id;
 	u8 Len;
 	s32 Position;
-	u8 *pData = (u8 *)(&Position);
+	u8 *pData;
 	s16 Ack;
-	
-    uint32_t i=0;
-    portBASE_TYPE xStatus;
     uint16_t RemoteChannel_1;
-    
-    CanRxMsg CANRxMessage;
     
     /* Calculate the Position here */
     RemoteChannel_1=GetRemoteControl(1-1);
@@ -272,25 +250,13 @@ void SetSteeringMotorPos ( void )
 		
     Id = SteeringMotorId+PosRightFront;
     Len = 8;
-	CANSendMsg(Id, Len, MLDS_M, pData);
-    
-    /* Wait for return */
-	xStatus = xQueueReceive( xCANRcvQueue, &CANRxMessage, 10/portTICK_RATE_MS);
-	if (xStatus==pdPASS){
-		if ((CANRxMessage.Data[0]==6)&&(CANRxMessage.Data[1]==Id)&&
-				(CANRxMessage.Data[2]==MLDS_M)&&(CANRxMessage.Data[3]==MLDS_ACK)){
-			Ack=*(s16 *)(&CANRxMessage.Data[4]);
-			if(Ack!=0){
-			//TODO driver setup error
-				DebugPrintf("Ack Error in Pos\n");    
-			}
-			return;
-		}else{
-		//TODO return message Error
-			DebugPrintf("CAN Error in Pos\n");
-		}
+	pData = (u8 *)(&Position);
+	
+	CANSendCmd(Id, Len, MLDS_M, pData);
+	Ack = *(s16 *)(&pData);
+	if(Ack!=0){
+		DebugPrintf("Ack Error\n"); 
 	}
-	DebugPrintf("CAN Error NO Receive in Pos\n");
 }
 
 /*****************************************************************************/
@@ -309,42 +275,35 @@ void SetSteeringMotorPos ( void )
 void SteeringMotorPosInitializeTask(void *pvParameters)
 {
     portTickType xLastWakeTime;
-	s16 Ack;
-	s32 SteeringMotorRightFrontEncoderValue;
-	s32 SteeringMotorRightFrontDriverValue;
-	u32 Id = SteeringMotorId+PosRightFront;
+	u32 Id;
 	u8 Len;
-    portBASE_TYPE xStatus;
-    CanRxMsg CANRxMessage;
+	s32 Position;
+	u8 *pData;
+	s16 Ack;
 
     xLastWakeTime = xTaskGetTickCount();
     
 	for(;;){
 		
-		SteeringMotorRightFrontEncoderValue=GetSteeringMotorPosition(PosRightFront);
-		
+		Position=GetSteeringMotorPosition(PosRightFront);
+
+	    Id = SteeringMotorId+PosRightFront;
 		Len=8;
-		CANSendMsg(Id, Len, MLDS_PO, (u8 *)(&SteeringMotorRightFrontEncoderValue));
+		pData = (u8 *)(&Position);
 		
-		do{
-			xStatus = xQueueReceive( xCANRcvQueue, &CANRxMessage, 10/portTICK_RATE_MS);
-		}while (xStatus==pdPASS); 
-		
-		if ((CANRxMessage.Data[0]==8)&&(CANRxMessage.Data[1]==Id)&&
-				(CANRxMessage.Data[2]==MLDS_PO)&&(CANRxMessage.Data[3]==MLDS_ACK)){
-			Ack=*(s16 *)(&CANRxMessage.Data[4]);
-			if(Ack!=0){
-			//TODO driver setup error
-			}
-		}else{
-		//TODO return message Error
+	SEND_CMD:
+		CANSendCmd(Id, Len, MLDS_PO, pData);
+		Ack = *(s16 *)(&pData);
+		if(Ack!=0){
+			goto SEND_CMD;
 		}
+		
 		DebugPrintf("Right Front Steering Motor Initialize Done!\n");
 		xSemaphoreGive(GetRobotMainSemaphore());
 		vTaskDelete(NULL);
 		
 		vTaskDelayUntil( &xLastWakeTime, 100 / portTICK_RATE_MS );
-	}
+	}   
 }
 
 /*****************************************************************************/
@@ -362,31 +321,23 @@ void SteeringMotorPosInitializeTask(void *pvParameters)
 void SteeringMotorPosTestTask(void *pvParameters)
 {
     portTickType xLastWakeTime;
+	u32 Id;
+	u8 Len;
+	u8 *pData;
+	
     u16 AbsEncoderInt;
 	s32 SteeringMotorRightFrontEncoderValue;
 	s32 SteeringMotorRightFrontDriverValue;
-	u32 Id = SteeringMotorId+PosRightFront;
-	u8 Len;
-    portBASE_TYPE xStatus;
-    CanRxMsg CANRxMessage;
 
     xLastWakeTime = xTaskGetTickCount();
     
 	for(;;){
 		
+	    Id = SteeringMotorId+PosRightFront;
 		Len=4;
-		CANSendMsg(Id, Len, MLDS_GM, NULL);
+		pData = (u8 *)(&SteeringMotorRightFrontDriverValue);
 		
-		do{
-			xStatus = xQueueReceive( xCANRcvQueue, &CANRxMessage, 10/portTICK_RATE_MS);
-		}while (xStatus==pdPASS); 
-		
-		if ((CANRxMessage.Data[0]==8)&&(CANRxMessage.Data[1]==Id)&&
-				(CANRxMessage.Data[2]==MLDS_GM)&&(CANRxMessage.Data[3]==MLDS_ACK)){
-			SteeringMotorRightFrontDriverValue=*(s32 *)(&CANRxMessage.Data[4]);
-		}else{
-		//TODO return message Error
-		}
+		CANSendCmd(Id, Len, MLDS_GM, pData);
 
 		SteeringMotorRightFrontEncoderValue=GetSteeringMotorPosition(PosRightFront);
 		AbsEncoderInt = GetAbsEncoderInt(PosRightFront);
