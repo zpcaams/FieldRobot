@@ -24,42 +24,7 @@
 
 /************************** Variable Definitions *****************************/
 
-static xQueueHandle xCANRcvQueue, xCANTransQueue;
-static xSemaphoreHandle xCAN1RX0Semaphore;
-
-xSemaphoreHandle GetCAN1RX0Semaphore(void)
-{
-	return xCAN1RX0Semaphore;
-}
-/*****************************************************************************/
-/**
-*
-* CAN Receive Message Task
-*
-* @param  	None
-*
-* @return	None
-*
-* @note		Task Unblock when CAN1 RX0 Interrupt happened.
-* 			Read the CAN_FIFO0 Message to Local RAM,
-* 			Send it to CAN Receive Queue.
-*
-******************************************************************************/
-static void CANMsgRcvrTask (void *pvParameters)
-{
-    CanRxMsg CANRxMessage;
-	
-    for(;;){
-		if(xSemaphoreTake(xCAN1RX0Semaphore, portMAX_DELAY)==pdTRUE){
-			CAN_Receive(CANx, CAN_FIFO0, &CANRxMessage);
-			/* 
-			 * Under the Robot Task control, Receive Queue is not able to Full.
-			 * So xTicksToWait is set 0 here;
-			 */
-			xQueueSendToBack(xCANRcvQueue, &CANRxMessage, 0);
-		}
-    }
-}
+xQueueHandle xCANRcvQueue, xCANTransQueue;
 
 /*****************************************************************************/
 /**
@@ -103,9 +68,9 @@ static void CANMsgSendTask (void *pvParameters)
 * @note		None
 *
 ******************************************************************************/
-static void CANSendCmd(u32 Id, u8 Len, u8 Cmd, u8 *pData)
+static void CANSendCmd(u32 Id, u8 Len, u8 Cmd, u8 *pTxData, s32 *pRxData)
 {
-	u32 i;
+	u8 i;
     portBASE_TYPE xStatus;
 	CanTxMsg CANTxMessage;
 	CanRxMsg CANRxMessage;
@@ -122,7 +87,7 @@ static void CANSendCmd(u32 Id, u8 Len, u8 Cmd, u8 *pData)
     CANTxMessage.Data[3] = 0;
     
     for(i=4;i<Len;i++){
-    	CANTxMessage.Data[i] = *(pData+i-4);
+    	CANTxMessage.Data[i] = *(pTxData+i-4);
     }
     
     /* Send CAN Msg */
@@ -135,12 +100,9 @@ SEND_CAN_MSG:
 		if ((CANRxMessage.Data[1]==Id)&&
 			(CANRxMessage.Data[2]==Cmd)&&
 			(CANRxMessage.Data[3]==MLDS_ACK)){
-			
-			if(pData!=NULL){
-				pData = &CANRxMessage.Data[4];
-			}
-			return;
-		}
+        *pRxData = *(s32 *)(&CANRxMessage.Data[4]);
+      }
+    			return;
 	}
 	goto SEND_CAN_MSG;
 }
@@ -165,7 +127,7 @@ void CANSelfTest(void)
 	Id = SteeringMotorId+PosRightFront;
 	Len = 4;
 	for(i=0;i<2;i++){
-		CANSendCmd(Id, Len, MLDS_GDTY, &Data);
+		CANSendCmd(Id, Len, MLDS_GDTY, NULL, (s32 *)(&Data));
 		if(Data==0x4E){
 			DebugPrintf("CAN Selftest pass!\n");
 			return;
@@ -194,7 +156,6 @@ void SetWheelMotoSpeed ( void )
 	u32 Id;
 	u8 Len;
 	s32 Speed;
-	u8 *pData;
 	s16 Ack;
     uint16_t RemoteChannel_2;
     
@@ -211,10 +172,8 @@ void SetWheelMotoSpeed ( void )
     /* Send the message to driver */
 	Id = WheelMotorId+PosRightFront;
 	Len = 8;
-	pData = (u8 *)(&Speed);
 	
-	CANSendCmd(Id, Len, MLDS_V, pData);	
-	Ack = *(s16 *)(&pData);
+	CANSendCmd(Id, Len, MLDS_V, (u8 *)(&Speed), (s32 *)(&Ack));
 	if(Ack!=0){
 		DebugPrintf("Ack Error\n"); 
 	}
@@ -238,7 +197,6 @@ void SetSteeringMotorPos ( void )
 	u32 Id;
 	u8 Len;
 	s32 Position;
-	u8 *pData;
 	s16 Ack;
     uint16_t RemoteChannel_1;
     
@@ -250,10 +208,8 @@ void SetSteeringMotorPos ( void )
 		
     Id = SteeringMotorId+PosRightFront;
     Len = 8;
-	pData = (u8 *)(&Position);
 	
-	CANSendCmd(Id, Len, MLDS_M, pData);
-	Ack = *(s16 *)(&pData);
+	CANSendCmd(Id, Len, MLDS_M, (u8 *)(&Position), (s32 *)(&Ack));
 	if(Ack!=0){
 		DebugPrintf("Ack Error\n"); 
 	}
@@ -278,7 +234,6 @@ void SteeringMotorPosInitializeTask(void *pvParameters)
 	u32 Id;
 	u8 Len;
 	s32 Position;
-	u8 *pData;
 	s16 Ack;
 
     xLastWakeTime = xTaskGetTickCount();
@@ -289,11 +244,11 @@ void SteeringMotorPosInitializeTask(void *pvParameters)
 
 	    Id = SteeringMotorId+PosRightFront;
 		Len=8;
-		pData = (u8 *)(&Position);
+//		pData = (u8 *)(&Position);
 		
 	SEND_CMD:
-		CANSendCmd(Id, Len, MLDS_PO, pData);
-		Ack = *(s16 *)(&pData);
+		CANSendCmd(Id, Len, MLDS_PO, (u8 *)(&Position), (s32 *)(&Ack));
+//		Ack = *pData;
 		if(Ack!=0){
 			goto SEND_CMD;
 		}
@@ -323,7 +278,7 @@ void SteeringMotorPosTestTask(void *pvParameters)
     portTickType xLastWakeTime;
 	u32 Id;
 	u8 Len;
-	u8 *pData;
+  s16 Ack;
 	
     u16 AbsEncoderInt;
 	s32 SteeringMotorRightFrontEncoderValue;
@@ -335,9 +290,13 @@ void SteeringMotorPosTestTask(void *pvParameters)
 		
 	    Id = SteeringMotorId+PosRightFront;
 		Len=4;
-		pData = (u8 *)(&SteeringMotorRightFrontDriverValue);
+//		pData = (u8 *)(&SteeringMotorRightFrontDriverValue);
 		
-		CANSendCmd(Id, Len, MLDS_GM, pData);
+	SEND_CMD:
+		CANSendCmd(Id, Len, MLDS_GM, (u8 *)(&SteeringMotorRightFrontDriverValue), (s32 *)(&Ack));
+		if(Ack!=0){
+			goto SEND_CMD;
+		}
 
 		SteeringMotorRightFrontEncoderValue=GetSteeringMotorPosition(PosRightFront);
 		AbsEncoderInt = GetAbsEncoderInt(PosRightFront);
@@ -472,7 +431,7 @@ void CANInitialise(void)
 
   /* CAN cell init */
   CAN_InitStructure.CAN_TTCM = DISABLE;
-  CAN_InitStructure.CAN_ABOM = DISABLE;
+  CAN_InitStructure.CAN_ABOM = ENABLE;
   CAN_InitStructure.CAN_AWUM = DISABLE;
   CAN_InitStructure.CAN_NART = DISABLE;
   CAN_InitStructure.CAN_RFLM = DISABLE;
@@ -508,11 +467,8 @@ void CANInitialise(void)
   xCANTransQueue = xQueueCreate( 4, sizeof(CanTxMsg) );
   	
   /* Creat the CAN Semaphore and Send/Receive Task */
-  vSemaphoreCreateBinary(xCAN1RX0Semaphore);
   xTaskCreate( CANMsgSendTask, ( signed char * ) "Can1Send", 
 		  configMINIMAL_STACK_SIZE, NULL, CANMsgSend_TASK_PRIORITY, NULL );
-  xTaskCreate( CANMsgRcvrTask, ( signed char * ) "Can1Rcvr", 
-		  configMINIMAL_STACK_SIZE, NULL, CANMsgRcvr_TASK_PRIORITY, NULL );
 }
 
 /*****************************************************************************/

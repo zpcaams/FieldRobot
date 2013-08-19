@@ -45,6 +45,8 @@
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 extern xSemaphoreHandle xSPIDMASemaphore;
+extern xQueueHandle xCANRcvQueue;
+
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
 
@@ -166,7 +168,14 @@ void CAN1_RX0_IRQHandler(void)
 {
 	portBASE_TYPE xHigherPriorityTaskWoken;
 	xHigherPriorityTaskWoken = pdFALSE;
-	xSemaphoreGiveFromISR(GetCAN1RX0Semaphore(), &xHigherPriorityTaskWoken);
+	CanRxMsg CANRxMessage;
+	
+	CAN_Receive(CANx, CAN_FIFO0, &CANRxMessage);
+	/* 
+	 * Under the Robot Task control, Receive Queue is not able to Full.
+	 * So xTicksToWait is set 0 here;
+	 */
+	xQueueSendToBackFromISR(xCANRcvQueue, &CANRxMessage, &xHigherPriorityTaskWoken);
 	portEND_SWITCHING_ISR(&xHigherPriorityTaskWoken);
 }
 #endif  /* USE_CAN1 */
@@ -199,14 +208,9 @@ void DMA1_Stream3_IRQHandler(void)
 	portBASE_TYPE xHigherPriorityTaskWoken;
 	xHigherPriorityTaskWoken = pdFALSE;
 	
-	/* Clear DMA Stream Transfer Complete interrupt pending bit */
+	/* Clear DMA Stream Transfer/Receiver Complete interrupt pending bit */
 	DMA_ClearITPendingBit(SPIx_RX_DMA_STREAM, SPIx_RX_DMA_FLAG_TCIF);
-
-	/* Disable DMA SPI TX Stream */
-	DMA_Cmd(SPIx_TX_DMA_STREAM,DISABLE);
-	
-	/* Disable DMA SPI RX Stream */
-	DMA_Cmd(SPIx_RX_DMA_STREAM,DISABLE); 
+	DMA_ClearITPendingBit(SPIx_TX_DMA_STREAM, SPIx_TX_DMA_FLAG_TCIF);
 	
 	xSemaphoreGiveFromISR(xSPIDMASemaphore, &xHigherPriorityTaskWoken);
 	portEND_SWITCHING_ISR(&xHigherPriorityTaskWoken);

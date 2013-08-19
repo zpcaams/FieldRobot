@@ -70,47 +70,48 @@ void SPISelfTest(void)
 {
 	u8 i;
 	u16 SpiBuffer16;
+    portBASE_TYPE xStatus;
 	
 	SPIx_CS_LOW();
+  
+	/* Enable DMA SPI RX Stream */
+	DMA_Cmd(SPIx_RX_DMA_STREAM, ENABLE);
+	/* Enable DMA SPI TX Stream */
+	DMA_Cmd(SPIx_TX_DMA_STREAM, ENABLE);
+  
+	do{
+		xStatus = xSemaphoreTake(xSPIDMASemaphore, 10/portTICK_RATE_MS);
+	}while(xStatus==pdTRUE);
+	
+	SPIx_CS_HIGH();
 
-	/* Enable SPI DMA TX Requsts */
-	SPI_I2S_DMACmd(SPIx, SPI_I2S_DMAReq_Tx, ENABLE);
+	i=0x14;
+	SpiBuffer16 = *(u16 *)(&Spi_RxBuffer[(i*3+1)]);
+	if (SpiBuffer16!=0xA55A){
+		DebugPrintf("FPGA board is not power on, SPI test failed!\n");
+		while(1);
+	}
+
+	i=0x8;
+	SpiBuffer16 = *(u16 *)(&Spi_RxBuffer[(i*3+1)]);
+	if (SpiBuffer16==60000){
+		DebugPrintf("Remote Controller is not power on, SPI test failed!\n");
+    	while(1);
+	}
 	
-	/* Enable SPI DMA RX Requsts */
-	SPI_I2S_DMACmd(SPIx, SPI_I2S_DMAReq_Rx, ENABLE);
-	
-	if(xSemaphoreTake(xSPIDMASemaphore, portMAX_DELAY)==pdTRUE){
-		
-		SPIx_CS_HIGH();
-	
-		i=0x14;
+	DebugPrintf("Load Initial Encoder Sensor Value to Local RAM.\n");
+	for(i=0;i<0x14;i++){
 		SpiBuffer16 = *(u16 *)(&Spi_RxBuffer[(i*3+1)]);
-		if (SpiBuffer16!=0xA55A){
-			DebugPrintf("FPGA board is not power on, SPI test failed!\n");
-			while(1){}
-		}
-	
-		i=0x8;
-		SpiBuffer16 = *(u16 *)(&Spi_RxBuffer[(i*3+1)]);
-		if (SpiBuffer16==60000){
-			DebugPrintf("Remote Controller is not power on, SPI test failed!\n");
-	//    	while(1){}
-		}
+		DebugPrintf("Channel %i: %i\n", i, SpiBuffer16);
 		
-		DebugPrintf("Load Initial Encoder Sensor Value to Local RAM.\n");
-		for(i=0;i<0x14;i++){
-			SpiBuffer16 = *(u16 *)(&Spi_RxBuffer[(i*3+1)]);
-			DebugPrintf("Channel %i: %i\n", i, SpiBuffer16);
-			
-			if (i < 5){
-				SetSteeringMotorPosition((i), SpiBuffer16);
-			} else if (i < 8){
-				SetCouplingsPosition((i-4), SpiBuffer16);
-			} else if (i<16){
-				SetRemoteControl((i-8), SpiBuffer16);
-			}else{
-				SetAbsEncoderInt((i-16), SpiBuffer16);
-			}
+		if (i < 5){
+			SetSteeringMotorPosition((i), SpiBuffer16);
+		} else if (i < 8){
+			SetCouplingsPosition((i-4), SpiBuffer16);
+		} else if (i<16){
+			SetRemoteControl((i-8), SpiBuffer16);
+		}else{
+			SetAbsEncoderInt((i-16), SpiBuffer16);
 		}
 	}
 } 
@@ -137,6 +138,7 @@ void EncoderRefershTask( void *pvParameters )
 	portTickType xLastWakeTime;
 	u8 i;
 	u16 SpiBuffer16;
+    portBASE_TYPE xStatus;
   
 	xLastWakeTime = xTaskGetTickCount();
 	
@@ -144,13 +146,14 @@ void EncoderRefershTask( void *pvParameters )
 	{
 		SPIx_CS_LOW();
 
-		/* Enable SPI DMA TX Requsts */
-		SPI_I2S_DMACmd(SPIx, SPI_I2S_DMAReq_Tx, ENABLE);
-		
-		/* Enable SPI DMA RX Requsts */
-		SPI_I2S_DMACmd(SPIx, SPI_I2S_DMAReq_Rx, ENABLE);
+		/* Enable DMA SPI RX Stream */
+		DMA_Cmd(SPIx_RX_DMA_STREAM, ENABLE);
+		/* Enable DMA SPI TX Stream */
+		DMA_Cmd(SPIx_TX_DMA_STREAM, ENABLE);
 
-		if(xSemaphoreTake(xSPIDMASemaphore, portMAX_DELAY)==pdTRUE){
+    	do{
+    		xStatus = xSemaphoreTake(xSPIDMASemaphore, 10/portTICK_RATE_MS);
+    	}while(xStatus==pdTRUE);
 			
 			SPIx_CS_HIGH();
 			
@@ -167,7 +170,6 @@ void EncoderRefershTask( void *pvParameters )
 					SetAbsEncoderInt((i-16), SpiBuffer16);
 				}			
 			}
-		}
 		
 		vTaskDelayUntil( &xLastWakeTime, 10 / portTICK_RATE_MS );
 	}
@@ -244,7 +246,6 @@ void EncoderInitialise(void)
 	SPI_InitStructure.SPI_CRCPolynomial = 7;
 	SPI_InitStructure.SPI_Mode = SPI_Mode_Master;
 	SPI_Init(SPIx, &SPI_InitStructure);
-
 	/* Enable SPIx  */
 	SPI_Cmd(SPIx, ENABLE);
 	
@@ -277,14 +278,13 @@ void EncoderInitialise(void)
 	DMA_InitStructure.DMA_Memory0BaseAddr =(uint32_t)Spi_RxBuffer ; 
 	DMA_Init(SPIx_RX_DMA_STREAM, &DMA_InitStructure);
 
-	/* Enable DMA SPI TX Stream */
-	DMA_Cmd(SPIx_TX_DMA_STREAM,ENABLE);
+	/* Enable SPI DMA TX Requsts */
+	SPI_I2S_DMACmd(SPIx, SPI_I2S_DMAReq_Tx, ENABLE);
+	/* Enable SPI DMA RX Requsts */
+	SPI_I2S_DMACmd(SPIx, SPI_I2S_DMAReq_Rx, ENABLE);
 	
-	/* Enable DMA SPI RX Stream */
-	DMA_Cmd(SPIx_RX_DMA_STREAM,ENABLE);
-
 	/* Enable DMA Stream Transfer Complete interrupt */
-	DMA_ITConfig(SPIx_RX_DMA_STREAM, SPIx_RX_DMA_FLAG_TCIF, ENABLE);
+	DMA_ITConfig(SPIx_RX_DMA_STREAM, DMA_IT_TC, ENABLE);
 	
 	/* Enable the DMA Stream IRQ Channel */
 	NVIC_InitStructure.NVIC_IRQChannel = DMA_STREAM_IRQ;
@@ -293,5 +293,6 @@ void EncoderInitialise(void)
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
 
+  
 	vSemaphoreCreateBinary(xSPIDMASemaphore);
 }
