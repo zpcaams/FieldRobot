@@ -39,8 +39,8 @@
 
 static xSemaphoreHandle xRobotMainSemaphore = NULL;
 
-static WheelMotor_4TypeDef      WheelMotor;
-static SteeringMotor_4TypeDef   SteeringMotor;
+WheelMotor_4TypeDef      WheelMotor;
+SteeringMotor_4TypeDef   SteeringMotor;
 static ElectricPutter_4TypeDef  ElectricPutter;
 static Couplings_4TypeDef       Couplings;
 

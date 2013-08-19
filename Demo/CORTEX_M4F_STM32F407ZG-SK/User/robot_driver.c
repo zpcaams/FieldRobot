@@ -26,6 +26,8 @@
 
 xQueueHandle xCANRcvQueue, xCANTransQueue;
 
+extern WheelMotor_4TypeDef      WheelMotor;
+extern SteeringMotor_4TypeDef   SteeringMotor;
 /*****************************************************************************/
 /**
 *
@@ -167,7 +169,7 @@ void SetWheelMotoSpeed ( void )
     if((Speed<3)&&(Speed>-3)){
         Speed=0;
     }
-    DebugPrintf("Speed=%i\n", Speed);    
+    DebugPrintf("Speed %i\n", Speed);    
 		
     /* Send the message to driver */
 	Id = WheelMotorId+PosRightFront;
@@ -177,6 +179,62 @@ void SetWheelMotoSpeed ( void )
 	if(Ack!=0){
 		DebugPrintf("Ack Error\n"); 
 	}
+}
+
+void GetWheelMotoSpeed (void) 
+{
+	u32 Id;
+	u8 Len;
+	s32 Speed;
+    
+	Id = WheelMotorId+PosRightFront;
+	Len = 4;
+	
+	CANSendCmd(Id, Len, MLDS_GV, NULL, &Speed);
+	WheelMotor.RightFront.GV = Speed;
+	DebugPrintf("Spd %i\n", Speed); 
+}
+
+void GetWheelMotoCurrent (void) 
+{
+	u32 Id;
+	u8 Len;
+	s32 Current;
+    
+	Id = WheelMotorId+PosRightFront;
+	Len = 4;
+	
+	CANSendCmd(Id, Len, MLDS_GC, NULL, &Current);
+	WheelMotor.RightFront.GC = Current;
+	DebugPrintf("Crt %i\n", Current); 
+}
+
+void GetWheelMotoTemp (void) 
+{
+	u32 Id;
+	u8 Len;
+	s16 Temp;
+    
+	Id = WheelMotorId+PosRightFront;
+	Len = 4;
+	
+	CANSendCmd(Id, Len, MLDS_GT, NULL, (s32 *)(&Temp));
+	WheelMotor.RightFront.GT = Temp;
+	DebugPrintf("Tmp %i\n", Temp); 
+}
+
+void GetWheelMotoError (void) 
+{
+	u32 Id;
+	u8 Len;
+	u16 Error;
+    
+	Id = WheelMotorId+PosRightFront;
+	Len = 4;
+	
+	CANSendCmd(Id, Len, MLDS_GEI, NULL, (s32 *)(&Error));
+	WheelMotor.RightFront.GEI = Error;
+	DebugPrintf("Err %x\n", Error); 
 }
 
 /*****************************************************************************/
@@ -204,7 +262,7 @@ void SetSteeringMotorPos ( void )
     RemoteChannel_1=GetRemoteControl(1-1);
     Position = -(RemoteChannel_1-1462);
     
-    DebugPrintf("Position=%i\n", Position);    
+    DebugPrintf("Pos %i\n", Position);    
 		
     Id = SteeringMotorId+PosRightFront;
     Len = 8;
@@ -213,6 +271,62 @@ void SetSteeringMotorPos ( void )
 	if(Ack!=0){
 		DebugPrintf("Ack Error\n"); 
 	}
+}
+
+void GetSteeringMotoSpeed (void) 
+{
+	u32 Id;
+	u8 Len;
+	s32 Speed;
+    
+	Id = SteeringMotorId+PosRightFront;
+	Len = 4;
+	
+	CANSendCmd(Id, Len, MLDS_GV, NULL, &Speed);
+	SteeringMotor.RightFront.GV = Speed;
+	DebugPrintf("Spd %i\n", Speed); 
+}
+
+void GetSteeringMotoCurrent (void) 
+{
+	u32 Id;
+	u8 Len;
+	s32 Current;
+    
+	Id = SteeringMotorId+PosRightFront;
+	Len = 4;
+	
+	CANSendCmd(Id, Len, MLDS_GC, NULL, &Current);
+	SteeringMotor.RightFront.GC = Current;
+	DebugPrintf("Crt %i\n", Current); 
+}
+
+void GetSteeringMotoTemp (void) 
+{
+	u32 Id;
+	u8 Len;
+	s16 Temp;
+    
+	Id = SteeringMotorId+PosRightFront;
+	Len = 4;
+	
+	CANSendCmd(Id, Len, MLDS_GT, NULL, (s32 *)(&Temp));
+	SteeringMotor.RightFront.GT = Temp;
+	DebugPrintf("Tmp %i\n", Temp); 
+}
+
+void GetSteeringMotoError (void) 
+{
+	u32 Id;
+	u8 Len;
+	u16 Error;
+    
+	Id = SteeringMotorId+PosRightFront;
+	Len = 4;
+	
+	CANSendCmd(Id, Len, MLDS_GEI, NULL, (s32 *)(&Error));
+	SteeringMotor.RightFront.GEI = Error;
+	DebugPrintf("Err %x\n", Error); 
 }
 
 /*****************************************************************************/
@@ -244,11 +358,9 @@ void SteeringMotorPosInitializeTask(void *pvParameters)
 
 	    Id = SteeringMotorId+PosRightFront;
 		Len=8;
-//		pData = (u8 *)(&Position);
 		
 	SEND_CMD:
 		CANSendCmd(Id, Len, MLDS_PO, (u8 *)(&Position), (s32 *)(&Ack));
-//		Ack = *pData;
 		if(Ack!=0){
 			goto SEND_CMD;
 		}
@@ -290,7 +402,6 @@ void SteeringMotorPosTestTask(void *pvParameters)
 		
 	    Id = SteeringMotorId+PosRightFront;
 		Len=4;
-//		pData = (u8 *)(&SteeringMotorRightFrontDriverValue);
 		
 	SEND_CMD:
 		CANSendCmd(Id, Len, MLDS_GM, (u8 *)(&SteeringMotorRightFrontDriverValue), (s32 *)(&Ack));
@@ -344,14 +455,48 @@ void CANMainTask( void *pvParameters )
         } else {
             TaskCounter = 0;
         }
+		DebugPrintf("%i ", TaskCounter); 
       
         switch (TaskCounter){
-            case 0:{
-            	SetSteeringMotorPos();
+            case 0: {
+            	SetWheelMotoSpeed();
                 break;
             }
             case 1: {
-            	SetWheelMotoSpeed();
+            	GetWheelMotoSpeed();
+                break;
+            }
+            case 2: {
+            	GetWheelMotoCurrent();
+                break;
+            }
+            case 3: {
+            	GetWheelMotoTemp();
+                break;
+            }
+            case 4: {
+            	GetWheelMotoError();
+                break;
+            }
+            
+            case 5:{
+            	SetSteeringMotorPos();
+                break;
+            }
+            case 6: {
+            	GetSteeringMotoSpeed();
+                break;
+            }
+            case 7: {
+            	GetSteeringMotoCurrent();
+                break;
+            }
+            case 8: {
+            	GetSteeringMotoTemp();
+                break;
+            }
+            case 9: {
+            	GetSteeringMotoError();
                 break;
             }
             default:{
@@ -433,7 +578,7 @@ void CANInitialise(void)
   CAN_InitStructure.CAN_TTCM = DISABLE;
   CAN_InitStructure.CAN_ABOM = ENABLE;
   CAN_InitStructure.CAN_AWUM = DISABLE;
-  CAN_InitStructure.CAN_NART = DISABLE;
+  CAN_InitStructure.CAN_NART = ENABLE;
   CAN_InitStructure.CAN_RFLM = DISABLE;
   CAN_InitStructure.CAN_TXFP = DISABLE;
   CAN_InitStructure.CAN_Mode = CAN_Mode_Normal;
