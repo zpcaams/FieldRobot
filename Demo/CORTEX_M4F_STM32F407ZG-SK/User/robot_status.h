@@ -1,7 +1,7 @@
 /*****************************************************************************/
 /**
 *
-* @file robot_debug.h
+* @file robot_status.h
 *
 *
 ******************************************************************************/
@@ -28,14 +28,9 @@
 #include "robot_encoder.h"
 #include "robot_driver.h"
 #include "robot_move.h"
+#include "robot_test.h"
  
 /************************** Constant Definitions *****************************/
- 
-/* Position Define */
-#define PosLeftFront      0
-#define PosRightFront     1
-#define PosRightBack      2
-#define PosLeftBack       3
 
 /* 
  * 机器人状态及说明
@@ -60,13 +55,13 @@
  * 停止状态：
  * 等待电机停止运转后，回到空闲状态
  * 
- * 通道	遥控器位置		基本功能	平动	转弯	回转	高度	轮距
+ * 通道	遥控器位置	基本功能	平动	转弯	回转	高度	轮距
  * 通道1	右手摇杆左右	转角		O	O	X	X	X
  * 通道3	右手摇杆下上	速度		O	O	O	X	X
  * 通道5	左前旋钮		高度		X	X	X	O	X
  * 通道6	左 旋钮		轮距		X	X	X	X	O
  * 通道7	右前旋钮		模式选择	X	X	X	X	X
- * 通道8	右前上开关           	总开关
+ * 通道8	右前上开关	总开关
  */
 #define	ROBOT_INIT			0
 #define	ROBOT_IDLE			1
@@ -80,14 +75,19 @@
 #define	ROBOT_HEIGHT_STOP	9
 #define	ROBOT_WIDTH			10
 #define	ROBOT_WIDTH_STOP	11
-
+#define	ROBOT_TEST			12
+#define	ROBOT_TEST_STOP		13
+ 
 #define	RobotMain_TASK_PRIORITY			( tskIDLE_PRIORITY + 1UL )
 #define	RobotMove_TASK_PRIORITY			( tskIDLE_PRIORITY + 1UL )
 #define	RobotMoveStop_TASK_PRIORITY		( tskIDLE_PRIORITY + 1UL )
+#define	RobotTest_TASK_PRIORITY			( tskIDLE_PRIORITY + 1UL )
+#define	RobotTestStop_TASK_PRIORITY		( tskIDLE_PRIORITY + 1UL )
  
  
  
 /**************************** Type Definitions *******************************/
+
  
 /* 轮毂电机 */
 typedef struct

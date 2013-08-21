@@ -66,7 +66,8 @@
 #include "robot_debug.h"
 #include "robot_encoder.h"
 #include "robot_driver.h"
-
+#include "robot_couplings.h"
+   
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/
 /* Exported macro ------------------------------------------------------------*/

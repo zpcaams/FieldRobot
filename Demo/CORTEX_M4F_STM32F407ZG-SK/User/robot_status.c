@@ -36,6 +36,7 @@
 #define MODE_ROLL		1300
 #define MODE_HEIGHT		1400
 #define MODE_WIDTH		1500
+#define MODE_TEST		1600
 
 /**************************** Type Definitions *******************************/
 
@@ -49,15 +50,14 @@ xSemaphoreHandle RobotStatusSemaphore;
 
 WheelMotor_4TypeDef      WheelMotor;
 SteeringMotor_4TypeDef   SteeringMotor;
-static ElectricPutter_4TypeDef  ElectricPutter;
-static Couplings_4TypeDef       Couplings;
-
-const uint16_t					RemoteControlDefault[8] ={
+static	ElectricPutter_4TypeDef  ElectricPutter;
+static	Couplings_4TypeDef       Couplings;
+const	u16					RemoteControlDefault[8] ={
 		1462, 1439, 1439, 1466, 1062, 1411, 1062, 1047};
 /* 
  * 2.4G Ò£¿Ø
  */
-static uint16_t			RemoteControl[8];
+u16						RemoteControl[8];
 
 /* »úÆ÷ÈË×´Ì¬ */
 u8						RobotStatus;
@@ -301,8 +301,10 @@ void RobotMainTask (void *pvParameters)
 						DebugPrintf("Will Switch to MODE_ROLL\n");
 					}else if(ModeSellect<MODE_HEIGHT){
 						DebugPrintf("Will Switch to MODE_HEIGHT\n");
-					}else{
+					}else if(ModeSellect<MODE_WIDTH){
 						DebugPrintf("Will Switch to MODE_WIDTH\n");
+					}else{
+						DebugPrintf("Will Switch to MODE_TEST\n");
 					}
 				}else{
 					RobotBusy = 1;
@@ -318,9 +320,12 @@ void RobotMainTask (void *pvParameters)
 					}else if(ModeSellect<MODE_HEIGHT){
 						RobotStatus = ROBOT_HEIGHT;
 						DebugPrintf("Switch to MODE_HEIGHT\n");
-					}else{
+					}else if(ModeSellect<MODE_HEIGHT){
 						RobotStatus = ROBOT_WIDTH;
-						DebugPrintf("Switch to MODE_WIDTH\n");
+						DebugPrintf("Switch to ROBOT_WIDTH\n");
+					}else{
+						EnterRobotTestStatus();
+						DebugPrintf("Switch to MODE_TEST\n");
 					}
 				}
     			break;
@@ -368,6 +373,22 @@ void RobotMainTask (void *pvParameters)
     		case ROBOT_WIDTH:
     			
 				if(MainSwitchOff){
+					RobotStatus = ROBOT_IDLE;
+					DebugPrintf("Switch to ROBOT_IDLE\n");
+				}
+    			break;
+    			
+    		case ROBOT_TEST:
+			
+				if(MainSwitchOff){
+					EnterRobotTestStopStatus();
+					DebugPrintf("Switch to ROBOT_TEST_STOP\n");
+				}
+				break;
+    			
+    		case ROBOT_TEST_STOP:
+    			
+				if(RobotBusy==0){
 					RobotStatus = ROBOT_IDLE;
 					DebugPrintf("Switch to ROBOT_IDLE\n");
 				}

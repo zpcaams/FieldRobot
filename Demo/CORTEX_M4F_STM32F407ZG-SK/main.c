@@ -379,6 +379,9 @@ static void prvSetupHardware( void )
         
   /* Setup the CAN Interface. */
 	CANInitialise();
+  
+  /* Setup the GPIO for Couplings. */
+  CouplingsInitialise();
 	
 	/* Configure the button input.  This configures the interrupt to use the
 	lowest interrupt priority, so it is ok to use the ISR safe FreeRTOS API

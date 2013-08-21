@@ -56,9 +56,9 @@
 #endif  /* USE_CAN1 */
  
 /* CAN ID Base for Moto Drivers */
-#define WheelMotorId     1
-#define SteeringMotorId  5
-#define ElectricPutterId 9
+#define WheelMotorId     4
+#define SteeringMotorId  8
+#define ElectricPutterId 12
  
 /* CAN Task Priority Setup */
 #define CANMsgSend_TASK_PRIORITY				    ( tskIDLE_PRIORITY + 4UL )
