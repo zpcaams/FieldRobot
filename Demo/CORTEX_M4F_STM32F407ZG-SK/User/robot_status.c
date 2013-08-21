@@ -29,6 +29,14 @@
 #define CPRB_ADJ    0
 #define CPLB_ADJ    0
 
+#define MainSwitchOff	(RemoteControl[7]<1439)
+#define ModeSellect		(RemoteControl[6])
+#define MODE_MOVE		1100
+#define MODE_TURN		1200
+#define MODE_ROLL		1300
+#define MODE_HEIGHT		1400
+#define MODE_WIDTH		1500
+
 /**************************** Type Definitions *******************************/
 
 /***************** Macros (Inline Functions) Definitions *********************/
@@ -37,7 +45,7 @@
 
 /************************** Variable Definitions *****************************/
 
-static xSemaphoreHandle xRobotMainSemaphore = NULL;
+xSemaphoreHandle RobotStatusSemaphore;
 
 WheelMotor_4TypeDef      WheelMotor;
 SteeringMotor_4TypeDef   SteeringMotor;
@@ -48,25 +56,19 @@ const uint16_t					RemoteControlDefault[8] ={
 		1462, 1439, 1439, 1466, 1062, 1411, 1062, 1047};
 /* 
  * 2.4G 遥控
- * 通道1	右手摇杆左右	转向
- * 通道2 	左手摇杆下上	保留
- * 通道3	右手摇杆下上	速度
- * 通道4	左手摇杆左右	保留
- * 通道5	左前旋钮		模式选择一
- * 通道6	左 旋钮		模式选择二
- * 通道7	右前旋钮		高度/轮距
- * 通道8	右前上开关		总开关
  */
-static uint16_t                 RemoteControl[8];
+static uint16_t			RemoteControl[8];
 
 /* 机器人状态 */
-static u32						RobotMainStatus;
+u8						RobotStatus;
+static u8				RobotBusy;
 
-static u16 						AbsEncoderInt[4];
+static u16 				AbsEncoderInt[4];
 
-xSemaphoreHandle GetRobotMainSemaphore(void)
+
+void ResetRoborBusy(void)
 {
-	return xRobotMainSemaphore;
+	RobotBusy = 0;
 }
 
 s32 CnvtAbsEncoderVal(u16 Value, s16 Adj)
@@ -264,38 +266,126 @@ void RobotMainTask (void *pvParameters)
     
     for( ; ; )
     {
-    	SPISelfTest();
-    	DebugPrintf("Create Encoder Refersh Task\n");
-    	xTaskCreate( EncoderRefershTask, ( signed char * ) "Encoder",
-    			configMINIMAL_STACK_SIZE, NULL, Encoder_TASK_PRIORITY, NULL );
-    	
-    	CANSelfTest();    	
-    	xTaskCreate( SteeringMotorPosInitializeTask, ( signed char * ) "PosInit",
-    			configMINIMAL_STACK_SIZE, NULL, PositionInitialize_TASK_PRIORITY, NULL );
-    	
-    	do{
-    		xStatus = xSemaphoreTake(xRobotMainSemaphore, 100/portTICK_RATE_MS);
-    	}while(xStatus==pdTRUE);
-				
-		xTaskCreate( CANMainTask, ( signed char * ) "CanMain",
-				configMINIMAL_STACK_SIZE, NULL, CANMain_TASK_PRIORITY, NULL );
+    	if(RobotStatus==ROBOT_INIT){
+        	SPISelfTest();
+        	DebugPrintf("SPI SelfTest Done!\n");
+        	DebugPrintf("Create Encoder Refersh Task\n");
+        	xTaskCreate( EncoderRefershTask, ( signed char * ) "Encoder",
+        			configMINIMAL_STACK_SIZE, NULL, Encoder_TASK_PRIORITY, NULL );
+        	
+        	CANSelfTest();
+        	DebugPrintf("CAN SelfTest Done!\n");
+        	xTaskCreate( SteeringMotorPosInitTask, ( signed char * ) "PosInit",
+        			configMINIMAL_STACK_SIZE, NULL, PositionInit_TASK_PRIORITY, NULL );
+        	DebugPrintf("Steering Motor Position Initialize Done!\n");
+        	
+        	do{
+        		xStatus = xSemaphoreTake(RobotStatusSemaphore, 100/portTICK_RATE_MS);
+        	}while(xStatus==pdTRUE);
 
-//		xTaskCreate( SteeringMotorPosTestTask, ( signed char * ) "SMT",
-//				configMINIMAL_STACK_SIZE, NULL, CANMain_TASK_PRIORITY, NULL );
-
-//		DebugPrintf("SteeringMotorPosTestTask Created.\n");
-    	do{
-    		xStatus = xSemaphoreTake(xRobotMainSemaphore, portMAX_DELAY);
-    	}while(xStatus==pdTRUE);
-    	
-        vTaskDelayUntil( &xLastWakeTime, 10 / portTICK_RATE_MS );
+        	DebugPrintf("Robot Initialize Done!\n");
+        	RobotStatus = ROBOT_IDLE;
+    		
+    	}else{
+    		switch(RobotStatus){
+    		
+    		case ROBOT_IDLE:
+    			
+				if(MainSwitchOff){
+						DebugPrintf("MODE_IDLE ");
+					if(ModeSellect<MODE_MOVE){
+						DebugPrintf("Will Switch to MODE_MOVE\n");
+					}else if(ModeSellect<MODE_TURN){
+						DebugPrintf("Will Switch to MODE_TURN\n");
+					}else if(ModeSellect<MODE_ROLL){
+						DebugPrintf("Will Switch to MODE_ROLL\n");
+					}else if(ModeSellect<MODE_HEIGHT){
+						DebugPrintf("Will Switch to MODE_HEIGHT\n");
+					}else{
+						DebugPrintf("Will Switch to MODE_WIDTH\n");
+					}
+				}else{
+					RobotBusy = 1;
+					if(ModeSellect<MODE_MOVE){
+						EnterRobotMoveStatus();
+						DebugPrintf("Switch to MODE_MOVE\n");
+					}else if(ModeSellect<MODE_TURN){
+						RobotStatus = ROBOT_TURN;
+						DebugPrintf("Switch to MODE_TURN\n");
+					}else if(ModeSellect<MODE_ROLL){
+						RobotStatus = ROBOT_ROLL;
+						DebugPrintf("Switch to MODE_ROLL\n");
+					}else if(ModeSellect<MODE_HEIGHT){
+						RobotStatus = ROBOT_HEIGHT;
+						DebugPrintf("Switch to MODE_HEIGHT\n");
+					}else{
+						RobotStatus = ROBOT_WIDTH;
+						DebugPrintf("Switch to MODE_WIDTH\n");
+					}
+				}
+    			break;
+    		
+    		case ROBOT_MOVE:
+    			
+				if(MainSwitchOff){
+					EnterRobotMoveStopStatus();
+					DebugPrintf("Switch to ROBOT_MOVE_STOP\n");
+				}
+    			break;
+    			
+    		case ROBOT_MOVE_STOP:
+    			
+				if(RobotBusy==0){
+					RobotStatus = ROBOT_IDLE;
+					DebugPrintf("Switch to ROBOT_IDLE\n");
+				}
+    			break;
+    			
+    		case ROBOT_TURN:
+    			
+				if(MainSwitchOff){
+					RobotStatus = ROBOT_IDLE;
+					DebugPrintf("Switch to ROBOT_IDLE\n");
+				}
+    			break;
+    			
+    		case ROBOT_ROLL:
+    			
+				if(MainSwitchOff){
+					RobotStatus = ROBOT_IDLE;
+					DebugPrintf("Switch to ROBOT_IDLE\n");
+				}
+    			break;
+    			
+    		case ROBOT_HEIGHT:
+    			
+				if(MainSwitchOff){
+					RobotStatus = ROBOT_IDLE;
+					DebugPrintf("Switch to ROBOT_IDLE\n");
+				}
+    			break;
+    			
+    		case ROBOT_WIDTH:
+    			
+				if(MainSwitchOff){
+					RobotStatus = ROBOT_IDLE;
+					DebugPrintf("Switch to ROBOT_IDLE\n");
+				}
+    			break;
+    			
+    		default:
+					RobotStatus = ROBOT_IDLE;
+    			break;
+    		}
+    	}
+        vTaskDelayUntil( &xLastWakeTime, 1000 / portTICK_RATE_MS );
     }
 }
 
 void GreatRobotMainTask(void)
 {
-	vSemaphoreCreateBinary(xRobotMainSemaphore);
-
+	RobotStatus = ROBOT_INIT;
+	vSemaphoreCreateBinary(RobotStatusSemaphore);
 	xTaskCreate( RobotMainTask, ( signed char * ) "RobotMain",
 		  configMINIMAL_STACK_SIZE, NULL, RobotMain_TASK_PRIORITY, NULL );
 	

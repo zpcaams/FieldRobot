@@ -26,8 +26,10 @@
 
 xQueueHandle xCANRcvQueue, xCANTransQueue;
 
+extern xSemaphoreHandle RobotStatusSemaphore;
 extern WheelMotor_4TypeDef      WheelMotor;
 extern SteeringMotor_4TypeDef   SteeringMotor;
+
 /*****************************************************************************/
 /**
 *
@@ -153,35 +155,22 @@ void CANSelfTest(void)
 * @note		None
 *
 ******************************************************************************/
-void SetWheelMotoSpeed ( void ) 
+void SetWheelMotoSpeed (s32 *Speed)
 {
 	u32 Id;
 	u8 Len;
-	s32 Speed;
 	s16 Ack;
-    uint16_t RemoteChannel_2;
-    
-    /*
-        calculate the speed here
-    */
-    RemoteChannel_2=GetRemoteControl(2-1);
-    Speed = (RemoteChannel_2-1440)/8;
-    if((Speed<3)&&(Speed>-3)){
-        Speed=0;
-    }
-    DebugPrintf("Speed %i\n", Speed);    
 		
-    /* Send the message to driver */
 	Id = WheelMotorId+PosRightFront;
 	Len = 8;
 	
-	CANSendCmd(Id, Len, MLDS_V, (u8 *)(&Speed), (s32 *)(&Ack));
+	CANSendCmd(Id, Len, MLDS_V, (u8 *)Speed, (s32 *)(&Ack));
 	if(Ack!=0){
-		DebugPrintf("Ack Error\n"); 
+		DebugPrintf("Speed Ack Error\n"); 
 	}
 }
 
-void GetWheelMotoSpeed (void) 
+void GetWheelMotoSpeed (void)
 {
 	u32 Id;
 	u8 Len;
@@ -192,10 +181,9 @@ void GetWheelMotoSpeed (void)
 	
 	CANSendCmd(Id, Len, MLDS_GV, NULL, &Speed);
 	WheelMotor.RightFront.GV = Speed;
-	DebugPrintf("Spd %i\n", Speed); 
 }
 
-void GetWheelMotoCurrent (void) 
+void GetWheelMotoCurrent (void)
 {
 	u32 Id;
 	u8 Len;
@@ -206,10 +194,9 @@ void GetWheelMotoCurrent (void)
 	
 	CANSendCmd(Id, Len, MLDS_GC, NULL, &Current);
 	WheelMotor.RightFront.GC = Current;
-	DebugPrintf("Crt %i\n", Current); 
 }
 
-void GetWheelMotoTemp (void) 
+void GetWheelMotoTemp (void)
 {
 	u32 Id;
 	u8 Len;
@@ -220,10 +207,9 @@ void GetWheelMotoTemp (void)
 	
 	CANSendCmd(Id, Len, MLDS_GT, NULL, (s32 *)(&Temp));
 	WheelMotor.RightFront.GT = Temp;
-	DebugPrintf("Tmp %i\n", Temp); 
 }
 
-void GetWheelMotoError (void) 
+void GetWheelMotoError (void)
 {
 	u32 Id;
 	u8 Len;
@@ -234,7 +220,6 @@ void GetWheelMotoError (void)
 	
 	CANSendCmd(Id, Len, MLDS_GEI, NULL, (s32 *)(&Error));
 	WheelMotor.RightFront.GEI = Error;
-	DebugPrintf("Err %x\n", Error); 
 }
 
 /*****************************************************************************/
@@ -250,30 +235,22 @@ void GetWheelMotoError (void)
 * @note		None
 *
 ******************************************************************************/
-void SetSteeringMotorPos ( void ) 
+void SetSteeringMotorPos (s32 *Position)
 {
 	u32 Id;
 	u8 Len;
-	s32 Position;
-	s16 Ack;
-    uint16_t RemoteChannel_1;
-    
-    /* Calculate the Position here */
-    RemoteChannel_1=GetRemoteControl(1-1);
-    Position = -(RemoteChannel_1-1462);
-    
-    DebugPrintf("Pos %i\n", Position);    
+	s16 Ack;  
 		
     Id = SteeringMotorId+PosRightFront;
     Len = 8;
 	
-	CANSendCmd(Id, Len, MLDS_M, (u8 *)(&Position), (s32 *)(&Ack));
+	CANSendCmd(Id, Len, MLDS_M, (u8 *)Position, (s32 *)(&Ack));
 	if(Ack!=0){
-		DebugPrintf("Ack Error\n"); 
+		DebugPrintf("Position Ack Error\n"); 
 	}
 }
 
-void GetSteeringMotoSpeed (void) 
+void GetSteeringMotoSpeed (void)
 {
 	u32 Id;
 	u8 Len;
@@ -284,10 +261,9 @@ void GetSteeringMotoSpeed (void)
 	
 	CANSendCmd(Id, Len, MLDS_GV, NULL, &Speed);
 	SteeringMotor.RightFront.GV = Speed;
-	DebugPrintf("Spd %i\n", Speed); 
 }
 
-void GetSteeringMotoCurrent (void) 
+void GetSteeringMotoCurrent (void)
 {
 	u32 Id;
 	u8 Len;
@@ -298,10 +274,9 @@ void GetSteeringMotoCurrent (void)
 	
 	CANSendCmd(Id, Len, MLDS_GC, NULL, &Current);
 	SteeringMotor.RightFront.GC = Current;
-	DebugPrintf("Crt %i\n", Current); 
 }
 
-void GetSteeringMotoTemp (void) 
+void GetSteeringMotoTemp (void)
 {
 	u32 Id;
 	u8 Len;
@@ -312,10 +287,9 @@ void GetSteeringMotoTemp (void)
 	
 	CANSendCmd(Id, Len, MLDS_GT, NULL, (s32 *)(&Temp));
 	SteeringMotor.RightFront.GT = Temp;
-	DebugPrintf("Tmp %i\n", Temp); 
 }
 
-void GetSteeringMotoError (void) 
+void GetSteeringMotoError (void)
 {
 	u32 Id;
 	u8 Len;
@@ -326,7 +300,6 @@ void GetSteeringMotoError (void)
 	
 	CANSendCmd(Id, Len, MLDS_GEI, NULL, (s32 *)(&Error));
 	SteeringMotor.RightFront.GEI = Error;
-	DebugPrintf("Err %x\n", Error); 
 }
 
 /*****************************************************************************/
@@ -342,7 +315,7 @@ void GetSteeringMotoError (void)
 * 			2:Set the Position using PO command.
 *
 ******************************************************************************/
-void SteeringMotorPosInitializeTask(void *pvParameters)
+void SteeringMotorPosInitTask(void *pvParameters)
 {
     portTickType xLastWakeTime;
 	u32 Id;
@@ -366,7 +339,7 @@ void SteeringMotorPosInitializeTask(void *pvParameters)
 		}
 		
 		DebugPrintf("Right Front Steering Motor Initialize Done!\n");
-		xSemaphoreGive(GetRobotMainSemaphore());
+		xSemaphoreGive(RobotStatusSemaphore);
 		vTaskDelete(NULL);
 		
 		vTaskDelayUntil( &xLastWakeTime, 100 / portTICK_RATE_MS );
@@ -457,52 +430,52 @@ void CANMainTask( void *pvParameters )
         }
 		DebugPrintf("%i ", TaskCounter); 
       
-        switch (TaskCounter){
-            case 0: {
-            	SetWheelMotoSpeed();
-                break;
-            }
-            case 1: {
-            	GetWheelMotoSpeed();
-                break;
-            }
-            case 2: {
-            	GetWheelMotoCurrent();
-                break;
-            }
-            case 3: {
-            	GetWheelMotoTemp();
-                break;
-            }
-            case 4: {
-            	GetWheelMotoError();
-                break;
-            }
-            
-            case 5:{
-            	SetSteeringMotorPos();
-                break;
-            }
-            case 6: {
-            	GetSteeringMotoSpeed();
-                break;
-            }
-            case 7: {
-            	GetSteeringMotoCurrent();
-                break;
-            }
-            case 8: {
-            	GetSteeringMotoTemp();
-                break;
-            }
-            case 9: {
-            	GetSteeringMotoError();
-                break;
-            }
-            default:{
-                break;
-            }
-        }
+//        switch (TaskCounter){
+//            case 0: {
+//            	SetWheelMotoSpeed();
+//                break;
+//            }
+//            case 1: {
+//            	GetWheelMotoSpeed();
+//                break;
+//            }
+//            case 2: {
+//            	GetWheelMotoCurrent();
+//                break;
+//            }
+//            case 3: {
+//            	GetWheelMotoTemp();
+//                break;
+//            }
+//            case 4: {
+//            	GetWheelMotoError();
+//                break;
+//            }
+//            
+//            case 5:{
+//            	SetSteeringMotorPos();
+//                break;
+//            }
+//            case 6: {
+//            	GetSteeringMotoSpeed();
+//                break;
+//            }
+//            case 7: {
+//            	GetSteeringMotoCurrent();
+//                break;
+//            }
+//            case 8: {
+//            	GetSteeringMotoTemp();
+//                break;
+//            }
+//            case 9: {
+//            	GetSteeringMotoError();
+//                break;
+//            }
+//            default:{
+//                break;
+//            }
+//        }
         
     /* Run this task every 10 ms */
     vTaskDelayUntil( &xLastWakeTime, 10 / portTICK_RATE_MS );

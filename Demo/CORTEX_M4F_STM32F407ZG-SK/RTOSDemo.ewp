@@ -1106,6 +1106,9 @@
       <name>$PROJ_DIR$\User\robot_encoder.c</name>
     </file>
     <file>
+      <name>$PROJ_DIR$\User\robot_move.c</name>
+    </file>
+    <file>
       <name>$PROJ_DIR$\User\robot_status.c</name>
     </file>
     <file>

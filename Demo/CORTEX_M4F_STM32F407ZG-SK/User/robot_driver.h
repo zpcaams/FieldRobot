@@ -63,7 +63,7 @@
 /* CAN Task Priority Setup */
 #define CANMsgSend_TASK_PRIORITY				    ( tskIDLE_PRIORITY + 4UL )
 #define CANMsgRcvr_TASK_PRIORITY				    ( tskIDLE_PRIORITY + 4UL )
-#define PositionInitialize_TASK_PRIORITY				    ( tskIDLE_PRIORITY + 3UL )
+#define PositionInit_TASK_PRIORITY				    ( tskIDLE_PRIORITY + 3UL )
 #define CANMain_TASK_PRIORITY				        ( tskIDLE_PRIORITY + 3UL )
    
 /**************************** Type Definitions *******************************/
@@ -76,8 +76,20 @@ xSemaphoreHandle GetCAN1RX0Semaphore(void);
 void Init_RxMes(CanRxMsg *RxMessage);
 void CANSelfTest(void);
 void CANMainTask( void *pvParameters );
-void SteeringMotorPosInitializeTask(void *pvParameters);
+void SteeringMotorPosInitTask(void *pvParameters);
 void SteeringMotorPosTestTask(void *pvParameters);
+
+void SetWheelMotoSpeed (s32 *Speed);
+void GetWheelMotoSpeed (void);
+void GetWheelMotoCurrent (void);
+void GetWheelMotoTemp (void);
+void GetWheelMotoError (void);
+
+void SetSteeringMotorPos (s32 *Position);
+void GetSteeringMotoSpeed (void);
+void GetSteeringMotoCurrent (void);
+void GetSteeringMotoTemp (void);
+void GetSteeringMotoError (void); 
 
 #ifdef __cplusplus
 }
