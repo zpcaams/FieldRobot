@@ -17,6 +17,8 @@
 
 /************************** Constant Definitions *****************************/
 
+#define TEST_ENCODER
+
 /**************************** Type Definitions *******************************/
 
 /***************** Macros (Inline Functions) Definitions *********************/
@@ -139,7 +141,9 @@ void EncoderRefershTask( void *pvParameters )
 	u8 i;
 	u16 SpiBuffer16;
     portBASE_TYPE xStatus;
-  
+#ifdef TEST_ENCODER
+    s16 TestPosition;
+#endif
 	xLastWakeTime = xTaskGetTickCount();
 	
 	for(;;)
@@ -160,9 +164,16 @@ void EncoderRefershTask( void *pvParameters )
 			for(i=0;i<0x14;i++){
 				SpiBuffer16 = *(u16 *)(&Spi_RxBuffer[(i*3+1)]);
 				
-				if (i < 5){
+				if (i < 4){
+#ifdef TEST_ENCODER
+					TestPosition = SpiBuffer16-(512+128);
+					DebugPrintf("Ch %i: %i\n", i, TestPosition);
+#endif
 					SetSteeringMotorPosition((i), SpiBuffer16);
 				} else if (i < 8){
+#ifdef TEST_ENCODER
+					DebugPrintf("Ch %i: %i\n", i, SpiBuffer16);
+#endif
 					SetCouplingsPosition((i-4), SpiBuffer16);
 				} else if (i<16){
 					SetRemoteControl((i-8), SpiBuffer16);
@@ -170,8 +181,12 @@ void EncoderRefershTask( void *pvParameters )
 					SetAbsEncoderInt((i-16), SpiBuffer16);
 				}			
 			}
-		
+
+#ifdef TEST_ENCODER
+		vTaskDelayUntil( &xLastWakeTime, 1000 / portTICK_RATE_MS );
+#else
 		vTaskDelayUntil( &xLastWakeTime, 10 / portTICK_RATE_MS );
+#endif
 	}
 }
 
