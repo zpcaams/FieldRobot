@@ -29,7 +29,14 @@ extern WheelMotor_4TypeDef		WheelMotor;
 extern SteeringMotor_4TypeDef	SteeringMotor;
 extern u16						RemoteControl[8];
 
-#define CouplingsSellect		(RemoteControl[2-1])
+u8 CouplingsSellect (void)
+{
+	if((RemoteControl[3-1]>1189)&&(RemoteControl[3-1]<1742)){
+		return (RemoteControl[6-1]-RemoteControl[3-1]+75);
+	}else{
+		return 0;
+	}
+}
 
 void EnterRobotTestStatus (void)
 {
@@ -46,17 +53,22 @@ void RobotTestTask (void *pvParameters)
 {
     portTickType xLastWakeTime;
     xLastWakeTime = xTaskGetTickCount();
+    u8 temp;
 
     for( ; ; )
     {
-    	if(CouplingsSellect<1200){
-    		CouplingsOn(PosLeftFront);
-    	}else if(CouplingsSellect<1400){
-    		CouplingsOn(PosRightFront);
-    	}else if(CouplingsSellect>1700){
+		temp = CouplingsSellect();
+		
+    	if(temp<25){
+    		CouplingsOff();
+		}else if(temp<50){
     		CouplingsOn(PosLeftBack);
-    	}else if(CouplingsSellect>1600){
+    	}else if(temp<75){
     		CouplingsOn(PosRightBack);
+    	}else if(temp<100){
+    		CouplingsOn(PosRightFront);
+    	}else if(temp<125){
+    		CouplingsOn(PosLeftFront);
     	}else{
     		CouplingsOff();
     	}

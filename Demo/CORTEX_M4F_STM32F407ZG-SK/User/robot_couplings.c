@@ -18,19 +18,19 @@
 
 #define CPLSn						4
 
-#define	CPLS_LF_PIN					GPIO_Pin_8
+#define	CPLS_LF_PIN					GPIO_Pin_9
 #define	CPLS_LF_GPIO_PORT			GPIOE
 #define	CPLS_LF_GPIO_CLK			RCC_AHB1Periph_GPIOE
 
-#define	CPLS_RF_PIN					GPIO_Pin_9
+#define	CPLS_RF_PIN					GPIO_Pin_10
 #define	CPLS_RF_GPIO_PORT			GPIOE
 #define	CPLS_RF_GPIO_CLK			RCC_AHB1Periph_GPIOE
 
-#define	CPLS_RB_PIN					GPIO_Pin_10
+#define	CPLS_RB_PIN					GPIO_Pin_11
 #define	CPLS_RB_GPIO_PORT			GPIOE
 #define	CPLS_RB_GPIO_CLK			RCC_AHB1Periph_GPIOE
 
-#define	CPLS_LB_PIN					GPIO_Pin_11
+#define	CPLS_LB_PIN					GPIO_Pin_8
 #define	CPLS_LB_GPIO_PORT			GPIOE
 #define	CPLS_LB_GPIO_CLK			RCC_AHB1Periph_GPIOE
 
@@ -72,14 +72,8 @@ void CouplingsOff(void)
 
 void CouplingsOn(Pos_TypeDef Position)
 {
-	Pos_TypeDef i;
-	for(i=PosLeftFront;i<CPLSn;i++){
-		if(i==Position){
-			SingleCouplingsOn(i);
-		}else{
-			SingleCouplingsOff(i);
-		}
-	}
+	CouplingsOff();
+	SingleCouplingsOn(Position);
 }
 
 void CouplingsPinInit(Pos_TypeDef Position)
