@@ -283,6 +283,10 @@ void RobotMainTask (void *pvParameters)
         		xStatus = xSemaphoreTake(RobotStatusSemaphore, 100/portTICK_RATE_MS);
         	}while(xStatus==pdTRUE);
 #endif
+
+        	DebugPrintf("Create ADC Refersh Task\n");
+        	AdcRefershTask();
+        	
         	DebugPrintf("Robot Initialize Done!\n");
         	RobotStatus = ROBOT_IDLE;
     		

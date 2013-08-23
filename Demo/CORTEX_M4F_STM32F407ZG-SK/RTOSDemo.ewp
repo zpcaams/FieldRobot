@@ -1097,6 +1097,9 @@
       <name>$PROJ_DIR$\RegTest.s</name>
     </file>
     <file>
+      <name>$PROJ_DIR$\User\robot_adc.c</name>
+    </file>
+    <file>
       <name>$PROJ_DIR$\User\robot_couplings.c</name>
     </file>
     <file>
