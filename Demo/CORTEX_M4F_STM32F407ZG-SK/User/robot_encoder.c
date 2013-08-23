@@ -166,7 +166,11 @@ void EncoderRefershTask( void *pvParameters )
 				
 				if (i < 4){
 #ifdef TEST_ENCODER
-					TestPosition = SpiBuffer16-(512+128);
+          if((i==PosRightFront)||(i==PosLeftBack)){
+            TestPosition = SpiBuffer16-(512+128);
+          }else if((i==PosLeftFront)||(i==PosRightBack)){
+            TestPosition = SpiBuffer16-(512-128);
+          }
 					DebugPrintf("Ch %i: %i\n", i, TestPosition);
 #endif
 					SetSteeringMotorPosition((i), SpiBuffer16);
