@@ -17,7 +17,7 @@
 
 /************************** Constant Definitions *****************************/
 
-#define TEST_ENCODER
+//#define TEST_ENCODER
 
 /**************************** Type Definitions *******************************/
 
@@ -179,18 +179,14 @@ void EncoderRefershTask( void *pvParameters )
 					DebugPrintf("Ch %i: %i\n", i, SpiBuffer16);
 #endif
 					SetCouplingsPosition((i-4), SpiBuffer16);
-				} else if (i<16){
+				} else if (i<16){		
 					SetRemoteControl((i-8), SpiBuffer16);
 				}else{
 					SetAbsEncoderInt((i-16), SpiBuffer16);
 				}			
 			}
 
-#ifdef TEST_ENCODER
-		vTaskDelayUntil( &xLastWakeTime, 1000 / portTICK_RATE_MS );
-#else
-		vTaskDelayUntil( &xLastWakeTime, 10 / portTICK_RATE_MS );
-#endif
+		vTaskDelayUntil( &xLastWakeTime, 100 / portTICK_RATE_MS );
 	}
 }
 
