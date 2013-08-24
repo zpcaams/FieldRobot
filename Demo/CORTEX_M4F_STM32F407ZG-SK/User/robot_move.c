@@ -54,6 +54,8 @@ void RobotMoveTask (void *pvParameters)
 {
 	s32 Speed;
 	s32 Position;
+	DriverMsg_TypeDef DriverMsg;
+	DriverMsg_TypeDef *pDriverMsg = &DriverMsg;
     portTickType xLastWakeTime;
 
     xLastWakeTime = xTaskGetTickCount();
@@ -67,24 +69,28 @@ void RobotMoveTask (void *pvParameters)
 		}
 		DebugPrintf("Speed %i\n", Speed);
 		
-		SetWheelMotoSpeed(&Speed);
-		GetWheelMotoSpeed();
-		GetWheelMotoCurrent();
-		GetWheelMotoTemp();
-		GetWheelMotoError();
-	    
+		pDriverMsg->Id = WheelMotorId + PosRightFront;
+		*(s32 *)(&(pDriverMsg->RxData[0])) = Speed;
+		SetMotoSpeed (pDriverMsg);
+		GetMotoSpeed (pDriverMsg);
+		GetMotoCurrent (pDriverMsg);
+		GetMotoTemp (pDriverMsg);
+		GetMotoError (pDriverMsg);
+		
 	    /* Calculate the Position here */
 	    Position = -(GetRemoteControl(1-1)-1460);
 		if((Position<5)&&(Position>-5)){
 			Position = 0;
 		}	    
-	    DebugPrintf("Pos %i\n", Position);  
-		
-		SetSteeringMotorPos(&Position);
-		GetSteeringMotoSpeed();
-		GetSteeringMotoCurrent();
-		GetSteeringMotoTemp();
-		GetSteeringMotoError();
+	    DebugPrintf("Pos %i\n", Position);
+	    
+		pDriverMsg->Id = SteeringMotorId + PosRightFront;
+		*(s32 *)(&(pDriverMsg->RxData[0])) = Position;
+		SetMotoPos (pDriverMsg);
+		GetMotoSpeed (pDriverMsg);
+		GetMotoCurrent (pDriverMsg);
+		GetMotoTemp (pDriverMsg);
+		GetMotoError (pDriverMsg);
 		
 //		DebugPrintf("RobotMoveTask is running\n");
 		
@@ -102,25 +108,31 @@ void RobotMoveStopTask (void *pvParameters)
 {
 	s32 Speed;
 	s32 Position;
+	DriverMsg_TypeDef DriverMsg;
+	DriverMsg_TypeDef *pDriverMsg = &DriverMsg;
     portTickType xLastWakeTime;
 
     xLastWakeTime = xTaskGetTickCount();
 
     for( ; ; )
     {
-		Speed = 0;		
-		SetWheelMotoSpeed(&Speed);
-		GetWheelMotoSpeed();
-		GetWheelMotoCurrent();
-		GetWheelMotoTemp();
-		GetWheelMotoError();
+		Speed = 0;
+		pDriverMsg->Id = WheelMotorId + PosRightFront;
+		*(s32 *)(&(pDriverMsg->RxData[0])) = Speed;
+		SetMotoSpeed (pDriverMsg);
+		GetMotoSpeed (pDriverMsg);
+		GetMotoCurrent (pDriverMsg);
+		GetMotoTemp (pDriverMsg);
+		GetMotoError (pDriverMsg);
 	    
-		Position = 0;		
-		SetSteeringMotorPos(&Position);
-		GetSteeringMotoSpeed();
-		GetSteeringMotoCurrent();
-		GetSteeringMotoTemp();
-		GetSteeringMotoError();
+		Position = 0;
+		pDriverMsg->Id = SteeringMotorId + PosRightFront;
+		*(s32 *)(&(pDriverMsg->RxData[0])) = Position;
+		SetMotoPos (pDriverMsg);
+		GetMotoSpeed (pDriverMsg);
+		GetMotoCurrent (pDriverMsg);
+		GetMotoTemp (pDriverMsg);
+		GetMotoError (pDriverMsg);
 		
 //		DebugPrintf("RobotMoveStopTask is running\n");
 		

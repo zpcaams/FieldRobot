@@ -67,7 +67,16 @@
 #define CANMain_TASK_PRIORITY				        ( tskIDLE_PRIORITY + 3UL )
    
 /**************************** Type Definitions *******************************/
-
+ 
+ typedef struct
+ {
+ 	u8 	Id;			/* Driver Id */
+ 	u8 	Len;		/* CAN Msg Length */
+ 	u8 	Cmd;		/* Msg Command */
+ 	u8 	TxData[4];	/* TxData */
+ 	u8 	RxData[4];	/* RxData */
+ } DriverMsg_TypeDef;
+ 
 /***************** Macros (Inline Functions) Definitions *********************/
 
 /************************** Function Prototypes ******************************/
@@ -79,17 +88,14 @@ void CANMainTask( void *pvParameters );
 void SteeringMotorPosInitTask(void *pvParameters);
 void SteeringMotorPosTestTask(void *pvParameters);
 
-void SetWheelMotoSpeed (s32 *Speed);
-void GetWheelMotoSpeed (void);
-void GetWheelMotoCurrent (void);
-void GetWheelMotoTemp (void);
-void GetWheelMotoError (void);
-
-void SetSteeringMotorPos (s32 *Position);
-void GetSteeringMotoSpeed (void);
-void GetSteeringMotoCurrent (void);
-void GetSteeringMotoTemp (void);
-void GetSteeringMotoError (void); 
+void SetMotoSpeed (DriverMsg_TypeDef *DriverMsg);
+void GetMotoSpeed (DriverMsg_TypeDef *DriverMsg);
+void GetMotoCurrent (DriverMsg_TypeDef *DriverMsg);
+void GetMotoTemp (DriverMsg_TypeDef *DriverMsg);
+void GetMotoError (DriverMsg_TypeDef *DriverMsg);
+void SetMotoPos (DriverMsg_TypeDef *DriverMsg);
+void GetMotoPos (DriverMsg_TypeDef *DriverMsg);
+void GetMotoType (DriverMsg_TypeDef *DriverMsg);
 
 #ifdef __cplusplus
 }

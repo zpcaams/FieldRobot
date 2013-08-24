@@ -62,17 +62,18 @@ static void CANMsgSendTask (void *pvParameters)
 /**
 * Send Command to Driver
 * 
-* @param	Id		CAN Id of Target Driver
-* 			Len		Length of CAN Message
-* 			Cmd		Cmd to Sent, List in mlds_can.h
-* 			pData	Pointer Points Data to Sent
+* @param	u32	Id			CAN Id of Target Driver
+* 			u8	Len			Length of CAN Message
+* 			u8	Cmd			Cmd to Sent, List in mlds_can.h
+* 			u8	*pTxData	Pointer Points the Data to Sent
+* 			s32	*pRxData	Pointer Points the Data wil Receive
 *
 * @return	None
 *
 * @note		None
 *
 ******************************************************************************/
-static void CANSendCmd(u32 Id, u8 Len, u8 Cmd, u8 *pTxData, s32 *pRxData)
+static void CANSendCmd(DriverMsg_TypeDef *DriverMsg)
 {
 	u8 i;
     portBASE_TYPE xStatus;
@@ -80,18 +81,18 @@ static void CANSendCmd(u32 Id, u8 Len, u8 Cmd, u8 *pTxData, s32 *pRxData)
 	CanRxMsg CANRxMessage;
 	
 	/* SetUp CAN Msg */
-    CANTxMessage.StdId = Id;
+    CANTxMessage.StdId = (uint32_t)(DriverMsg->Id);
     CANTxMessage.ExtId = 0;
     CANTxMessage.IDE = CAN_ID_STD;
     CANTxMessage.RTR = CAN_RTR_DATA;
-    CANTxMessage.DLC = Len;
-    CANTxMessage.Data[0] = Len;
-    CANTxMessage.Data[1] = Id;
-    CANTxMessage.Data[2] = Cmd;
+    CANTxMessage.DLC = DriverMsg->Len;
+    CANTxMessage.Data[0] = DriverMsg->Len;
+    CANTxMessage.Data[1] = DriverMsg->Id;
+    CANTxMessage.Data[2] = DriverMsg->Cmd;
     CANTxMessage.Data[3] = 0;
     
-    for(i=4;i<Len;i++){
-    	CANTxMessage.Data[i] = *(pTxData+i-4);
+    for(i=4;i<(DriverMsg->Len);i++){
+    	CANTxMessage.Data[i] = *((DriverMsg->TxData)+i-4);
     }
     
     /* Send CAN Msg */
@@ -101,46 +102,16 @@ SEND_CAN_MSG:
     /* Receive CAN Msg */
 	xStatus = xQueueReceive( xCANRcvQueue, &CANRxMessage, 5/portTICK_RATE_MS);
 	if (xStatus==pdPASS){
-		if ((CANRxMessage.Data[1]==Id)&&
-			(CANRxMessage.Data[2]==Cmd)&&
+		if ((CANRxMessage.Data[1]==DriverMsg->Id)&&
+			(CANRxMessage.Data[2]==DriverMsg->Cmd)&&
 			(CANRxMessage.Data[3]==MLDS_ACK)){
-        *pRxData = *(s32 *)(&CANRxMessage.Data[4]);
-      }
+			for(i=0;i<4;i++){
+				DriverMsg->RxData[i] = CANRxMessage.Data[i+4];
     			return;
+			}
+		}
 	}
 	goto SEND_CAN_MSG;
-}
-
-/*****************************************************************************/
-/**
-*
-* @param	None
-*
-* @return	None
-*
-* @note		None
-*
-******************************************************************************/
-void CANSelfTest(void)
-{
-	u32 Id;
-	u8 Len;
-	u8 Data;
-	u8 i;
-
-	Id = SteeringMotorId+PosRightFront;
-	Len = 4;
-	for(i=0;i<2;i++){
-		CANSendCmd(Id, Len, MLDS_GDTY, NULL, (s32 *)(&Data));
-		if(Data==0x4E){
-			DebugPrintf("CAN Selftest pass!\n");
-			return;
-		}
-		DebugPrintf("CAN Selftest failed, test again.\n");
-	}
-	
-    DebugPrintf("CAN Selftest failed!\n");
-	while(1);
 }
 
 /*****************************************************************************/
@@ -155,71 +126,39 @@ void CANSelfTest(void)
 * @note		None
 *
 ******************************************************************************/
-void SetWheelMotoSpeed (s32 *Speed)
+void SetMotoSpeed (DriverMsg_TypeDef *DriverMsg)
 {
-	u32 Id;
-	u8 Len;
-	s16 Ack;
-		
-	Id = WheelMotorId+PosRightFront;
-	Len = 8;
-	
-	CANSendCmd(Id, Len, MLDS_V, (u8 *)Speed, (s32 *)(&Ack));
-	if(Ack!=0){
-		DebugPrintf("Speed Ack Error\n"); 
-	}
+	DriverMsg->Len = 8;
+	DriverMsg->Cmd = MLDS_V;
+	CANSendCmd(DriverMsg);
 }
 
-void GetWheelMotoSpeed (void)
+void GetMotoSpeed (DriverMsg_TypeDef *DriverMsg)
 {
-	u32 Id;
-	u8 Len;
-	s32 Speed;
-    
-	Id = WheelMotorId+PosRightFront;
-	Len = 4;
-	
-	CANSendCmd(Id, Len, MLDS_GV, NULL, &Speed);
-	WheelMotor.RightFront.GV = Speed;
+	DriverMsg->Len = 4;
+	DriverMsg->Cmd = MLDS_GV;
+	CANSendCmd(DriverMsg);
 }
 
-void GetWheelMotoCurrent (void)
+void GetMotoCurrent(DriverMsg_TypeDef *DriverMsg)
 {
-	u32 Id;
-	u8 Len;
-	s32 Current;
-    
-	Id = WheelMotorId+PosRightFront;
-	Len = 4;
-	
-	CANSendCmd(Id, Len, MLDS_GC, NULL, &Current);
-	WheelMotor.RightFront.GC = Current;
+	DriverMsg->Len = 4;
+	DriverMsg->Cmd = MLDS_GC;
+	CANSendCmd(DriverMsg);
 }
 
-void GetWheelMotoTemp (void)
+void GetMotoTemp (DriverMsg_TypeDef *DriverMsg)
 {
-	u32 Id;
-	u8 Len;
-	s16 Temp;
-    
-	Id = WheelMotorId+PosRightFront;
-	Len = 4;
-	
-	CANSendCmd(Id, Len, MLDS_GT, NULL, (s32 *)(&Temp));
-	WheelMotor.RightFront.GT = Temp;
+	DriverMsg->Len = 4;
+	DriverMsg->Cmd = MLDS_GT;
+	CANSendCmd(DriverMsg);
 }
 
-void GetWheelMotoError (void)
+void GetMotoError (DriverMsg_TypeDef *DriverMsg)
 {
-	u32 Id;
-	u8 Len;
-	u16 Error;
-    
-	Id = WheelMotorId+PosRightFront;
-	Len = 4;
-	
-	CANSendCmd(Id, Len, MLDS_GEI, NULL, (s32 *)(&Error));
-	WheelMotor.RightFront.GEI = Error;
+	DriverMsg->Len = 4;
+	DriverMsg->Cmd = MLDS_GEI;
+	CANSendCmd(DriverMsg);
 }
 
 /*****************************************************************************/
@@ -235,71 +174,53 @@ void GetWheelMotoError (void)
 * @note		None
 *
 ******************************************************************************/
-void SetSteeringMotorPos (s32 *Position)
+void SetMotoPos (DriverMsg_TypeDef *DriverMsg)
 {
-	u32 Id;
-	u8 Len;
-	s16 Ack;  
-		
-    Id = SteeringMotorId+PosRightFront;
-    Len = 8;
-	
-	CANSendCmd(Id, Len, MLDS_M, (u8 *)Position, (s32 *)(&Ack));
-	if(Ack!=0){
-		DebugPrintf("Position Ack Error\n"); 
+	DriverMsg->Len = 8;
+	DriverMsg->Cmd = MLDS_M;
+	CANSendCmd(DriverMsg);
+}
+
+void GetMotoPos (DriverMsg_TypeDef *DriverMsg)
+{
+	DriverMsg->Len = 4;
+	DriverMsg->Cmd = MLDS_GM;
+	CANSendCmd(DriverMsg);
+}
+
+void GetMotoType (DriverMsg_TypeDef *DriverMsg)
+{
+	DriverMsg->Len = 4;
+	DriverMsg->Cmd = MLDS_GDTY;
+	CANSendCmd(DriverMsg);
+}
+
+void CANSelfTest(void)
+{
+	u8 i;
+	u8 ErrorCounter = 0;
+	DriverMsg_TypeDef DriverMsg;
+	DriverMsg_TypeDef *pDriverMsg = &DriverMsg;	
+
+TEST_RESET:
+	if(ErrorCounter>10){
+		goto TEST_FAILED;
 	}
-}
-
-void GetSteeringMotoSpeed (void)
-{
-	u32 Id;
-	u8 Len;
-	s32 Speed;
-    
-	Id = SteeringMotorId+PosRightFront;
-	Len = 4;
 	
-	CANSendCmd(Id, Len, MLDS_GV, NULL, &Speed);
-	SteeringMotor.RightFront.GV = Speed;
-}
-
-void GetSteeringMotoCurrent (void)
-{
-	u32 Id;
-	u8 Len;
-	s32 Current;
-    
-	Id = SteeringMotorId+PosRightFront;
-	Len = 4;
+	for(i=WheelMotorId;i<(WheelMotorId+4);i++){
+		pDriverMsg->Id = i;
+		GetMotoType(pDriverMsg);
+		if((pDriverMsg->RxData[0])!=0x4E){
+			ErrorCounter++;
+			goto TEST_RESET;
+		}
+	}
+	DebugPrintf("CAN Selftest pass!\n");
+	return;
 	
-	CANSendCmd(Id, Len, MLDS_GC, NULL, &Current);
-	SteeringMotor.RightFront.GC = Current;
-}
-
-void GetSteeringMotoTemp (void)
-{
-	u32 Id;
-	u8 Len;
-	s16 Temp;
-    
-	Id = SteeringMotorId+PosRightFront;
-	Len = 4;
-	
-	CANSendCmd(Id, Len, MLDS_GT, NULL, (s32 *)(&Temp));
-	SteeringMotor.RightFront.GT = Temp;
-}
-
-void GetSteeringMotoError (void)
-{
-	u32 Id;
-	u8 Len;
-	u16 Error;
-    
-	Id = SteeringMotorId+PosRightFront;
-	Len = 4;
-	
-	CANSendCmd(Id, Len, MLDS_GEI, NULL, (s32 *)(&Error));
-	SteeringMotor.RightFront.GEI = Error;
+TEST_FAILED:
+	DebugPrintf("CAN Selftest failed!\n");
+	while(1);
 }
 
 /*****************************************************************************/
@@ -317,33 +238,30 @@ void GetSteeringMotoError (void)
 ******************************************************************************/
 void SteeringMotorPosInitTask(void *pvParameters)
 {
+	u8 i;
     portTickType xLastWakeTime;
-	u32 Id;
-	u8 Len;
-	s32 Position;
-	s16 Ack;
-
+	DriverMsg_TypeDef DriverMsg;
+	DriverMsg_TypeDef *pDriverMsg = &DriverMsg;
+	
     xLastWakeTime = xTaskGetTickCount();
     
 	for(;;){
-		
-		Position=GetSteeringMotorPosition(PosRightFront);
 
-	    Id = SteeringMotorId+PosRightFront;
-		Len=8;
-		
-	SEND_CMD:
-		CANSendCmd(Id, Len, MLDS_PO, (u8 *)(&Position), (s32 *)(&Ack));
-		if(Ack!=0){
-			goto SEND_CMD;
+		for(i=SteeringMotorId;i<(SteeringMotorId+4);i++){
+			pDriverMsg->Id = i;
+			*(s32 *)(&(pDriverMsg->RxData[0])) = GetSteeringMotorPosition(i-SteeringMotorId);
+			SetMotoPos(pDriverMsg);
+			if((pDriverMsg->RxData[0])!=0){
+				/* Error */
+			}
 		}
 		
-		DebugPrintf("Right Front Steering Motor Initialize Done!\n");
+		DebugPrintf("Steering Motor Initialize Done!\n");
 		xSemaphoreGive(RobotStatusSemaphore);
 		vTaskDelete(NULL);
 		
 		vTaskDelayUntil( &xLastWakeTime, 100 / portTICK_RATE_MS );
-	}   
+	}
 }
 
 /*****************************************************************************/
@@ -360,11 +278,10 @@ void SteeringMotorPosInitTask(void *pvParameters)
 ******************************************************************************/
 void SteeringMotorPosTestTask(void *pvParameters)
 {
+	u8 i;
     portTickType xLastWakeTime;
-	u32 Id;
-	u8 Len;
-  s16 Ack;
-	
+	DriverMsg_TypeDef DriverMsg;
+	DriverMsg_TypeDef *pDriverMsg = &DriverMsg;
     u16 AbsEncoderInt;
 	s32 SteeringMotorRightFrontEncoderValue;
 	s32 SteeringMotorRightFrontDriverValue;
@@ -373,24 +290,20 @@ void SteeringMotorPosTestTask(void *pvParameters)
     
 	for(;;){
 		
-	    Id = SteeringMotorId+PosRightFront;
-		Len=4;
-		
-	SEND_CMD:
-		CANSendCmd(Id, Len, MLDS_GM, (u8 *)(&SteeringMotorRightFrontDriverValue), (s32 *)(&Ack));
-		if(Ack!=0){
-			goto SEND_CMD;
-		}
+		for(i=SteeringMotorId;i<(SteeringMotorId+4);i++){
+			
+			pDriverMsg->Id = i;
+			GetMotoPos(pDriverMsg);
+			SteeringMotorRightFrontDriverValue = *(s32 *)(&(pDriverMsg->RxData[0]));
+			SteeringMotorRightFrontEncoderValue=GetSteeringMotorPosition(i-SteeringMotorId);
+			AbsEncoderInt = GetAbsEncoderInt(i-SteeringMotorId);
 
-		SteeringMotorRightFrontEncoderValue=GetSteeringMotorPosition(PosRightFront);
-		AbsEncoderInt = GetAbsEncoderInt(PosRightFront);
-		
-		SteeringMotorRightFrontEncoderValue/=4;
-		SteeringMotorRightFrontDriverValue/=4;
-    
-		DebugPrintf("SMRF:%i %i %i\n", SteeringMotorRightFrontEncoderValue, 
-				SteeringMotorRightFrontDriverValue, AbsEncoderInt);
-		
+			SteeringMotorRightFrontEncoderValue/=4;
+			SteeringMotorRightFrontDriverValue/=4;
+	    
+			DebugPrintf("SMRF:%i %i %i\n", SteeringMotorRightFrontEncoderValue, 
+					SteeringMotorRightFrontDriverValue, AbsEncoderInt);
+		}
 		vTaskDelayUntil( &xLastWakeTime, 300 / portTICK_RATE_MS );
 	}
 }
