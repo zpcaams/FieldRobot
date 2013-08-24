@@ -1124,9 +1124,6 @@
       <name>$PROJ_DIR$\stm32f4xx_it.c</name>
     </file>
   </group>
-  <file>
-    <name>$PROJ_DIR$\readme.txt</name>
-  </file>
 </project>
 
 
