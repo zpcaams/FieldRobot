@@ -1,10 +1,10 @@
 /*****************************************************************************/
 /**
-* @file robot_encoder.c
+* @file robot_spi.c
 *
 *
-* This file contains a driver which get register value of encoder and 
-* 2.4G wireless remote control information via spi interface using DMA.
+* This file contains a driver which get register value from fpga
+* via spi interface using DMA.
 *
 * @note
 *
@@ -13,11 +13,46 @@
 ******************************************************************************/
 
 /***************************** Include Files *********************************/
-#include "robot_encoder.h"
+#include "robot_spi.h"
 
 /************************** Constant Definitions *****************************/
 
-//#define TEST_ENCODER
+#define SPIx                       SPI2
+#define SPIx_CLK                   RCC_APB1Periph_SPI2
+
+#define SPIx_SCK_PIN               GPIO_Pin_13                  /* PB.13 */
+#define SPIx_SCK_GPIO_PORT         GPIOB                       /* GPIOB */
+#define SPIx_SCK_GPIO_CLK          RCC_AHB1Periph_GPIOB
+#define SPIx_SCK_SOURCE            GPIO_PinSource13
+#define SPIx_SCK_AF                GPIO_AF_SPI2
+
+#define SPIx_MISO_PIN              GPIO_Pin_14                  /* PB.14 */
+#define SPIx_MISO_GPIO_PORT        GPIOB                       /* GPIOB */
+#define SPIx_MISO_GPIO_CLK         RCC_AHB1Periph_GPIOB
+#define SPIx_MISO_SOURCE           GPIO_PinSource14
+#define SPIx_MISO_AF               GPIO_AF_SPI1
+
+#define SPIx_MOSI_PIN              GPIO_Pin_15                  /* PB.15 */
+#define SPIx_MOSI_GPIO_PORT        GPIOB                       /* GPIOB */
+#define SPIx_MOSI_GPIO_CLK         RCC_AHB1Periph_GPIOB
+#define SPIx_MOSI_SOURCE           GPIO_PinSource15
+#define SPIx_MOSI_AF               GPIO_AF_SPI1
+
+#define SPIx_CS_PIN                GPIO_Pin_12                  /* PB.12 */
+#define SPIx_CS_GPIO_PORT          GPIOB                       /* GPIOB */
+#define SPIx_CS_GPIO_CLK           RCC_AHB1Periph_GPIOB
+
+#define SPIx_DMA                   	DMA1
+#define SPIx_DMA_CLK               	RCC_AHB1Periph_DMA1
+#define SPIx_TX_DMA_CHANNEL        	DMA_Channel_0
+#define SPIx_TX_DMA_STREAM         	DMA1_Stream4
+#define SPIx_TX_DMA_FLAG_TCIF      	DMA_FLAG_TCIF4
+#define SPIx_RX_DMA_CHANNEL        	DMA_Channel_0
+#define DMA_STREAM_IRQ           	DMA1_Stream3_IRQn
+#define SPIx_RX_DMA_STREAM         	DMA1_Stream3
+#define SPIx_RX_DMA_FLAG_TCIF      	DMA_FLAG_TCIF3
+#define DMA_STREAM_IRQHANDLER    	DMA1_Stream3_IRQHandler
+#define SPIx_DMA_BUFFER_SIZE       	(0x15*3)
 
 /**************************** Type Definitions *******************************/
 
@@ -59,6 +94,61 @@ static u8 Spi_RxBuffer[SPIx_DMA_BUFFER_SIZE];
 /*****************************************************************************/
 /**
 *
+* Get Spi Buffer Address
+*
+* @param	None
+*
+* @return	None
+*
+* @note		None
+*
+******************************************************************************/
+void GetSpiBuffer(u8 *pBuffer)
+{
+	pBuffer = Spi_RxBuffer;
+}
+
+/*****************************************************************************/
+/**
+*
+* Refersh RAM value via spi from fpga.
+*
+* @param	None
+*
+* @return	None
+*
+* @note		None
+*
+******************************************************************************/
+void SpiRefershTask( void *pvParameters )
+{
+	portTickType xLastWakeTime;
+    portBASE_TYPE xStatus;
+    
+	xLastWakeTime = xTaskGetTickCount();
+	
+	for(;;)
+	{
+		SPIx_CS_LOW();
+
+		/* Enable DMA SPI RX Stream */
+		DMA_Cmd(SPIx_RX_DMA_STREAM, ENABLE);
+		/* Enable DMA SPI TX Stream */
+		DMA_Cmd(SPIx_TX_DMA_STREAM, ENABLE);
+
+    	do{
+    		xStatus = xSemaphoreTake(xSPIDMASemaphore, 10/portTICK_RATE_MS);
+    	}while(xStatus==pdTRUE);
+			
+		SPIx_CS_HIGH();
+
+		vTaskDelayUntil( &xLastWakeTime, 100 / portTICK_RATE_MS );
+	}
+}
+
+/*****************************************************************************/
+/**
+*
 * Run SPI Selftest
 *
 * @param	None
@@ -71,7 +161,6 @@ static u8 Spi_RxBuffer[SPIx_DMA_BUFFER_SIZE];
 void SPISelfTest(void)
 {
 	u8 i;
-	u16 SpiBuffer16;
     portBASE_TYPE xStatus;
 	
 	SPIx_CS_LOW();
@@ -88,106 +177,11 @@ void SPISelfTest(void)
 	SPIx_CS_HIGH();
 
 	i=0x14;
-	SpiBuffer16 = *(u16 *)(&Spi_RxBuffer[(i*3+1)]);
-	if (SpiBuffer16!=0xA55A){
-		DebugPrintf("FPGA board is not power on, SPI test failed!\n");
+	if ((Spi_RxBuffer[(i*3+1)]!=0x5A)&&(Spi_RxBuffer[(i*3+2)]!=0xA5)){
+		DebugPrintf("SPI test failed, FPGA board may have some error!\n");
 		while(1);
 	}
-
-	i=0x8;
-	SpiBuffer16 = *(u16 *)(&Spi_RxBuffer[(i*3+1)]);
-	if (SpiBuffer16==60000){
-		DebugPrintf("Remote Controller is not power on, SPI test failed!\n");
-    	while(1);
-	}
-	
-	DebugPrintf("Load Initial Encoder Sensor Value to Local RAM.\n");
-	for(i=0;i<0x14;i++){
-		SpiBuffer16 = *(u16 *)(&Spi_RxBuffer[(i*3+1)]);
-		DebugPrintf("Channel %i: %i\n", i, SpiBuffer16);
-		
-		if (i < 5){
-			SetSteeringMotorPosition((i), SpiBuffer16);
-		} else if (i < 8){
-			SetCouplingsPosition((i-4), SpiBuffer16);
-		} else if (i<16){
-			SetRemoteControl((i-8), SpiBuffer16);
-		}else{
-			SetAbsEncoderInt((i-16), SpiBuffer16);
-		}
-	}
-} 
-
-/*****************************************************************************/
-/**
-*
-* Read the absolute encoder value and 2.4G remote control via SPI interface.
-* 	Channel 0~3 	Steering Motor Position Encoder
-* 	Channel 4~7 	Couplings Position Encoder
-* 	Channel 8~15 	2.4G remote control
-* 	Channel 16~19 	FPGA internal Steering Motor Position Encoder
-* 	Channel 20 		SelfTest
-*
-* @param	None
-*
-* @return	None
-*
-* @note		None
-*
-******************************************************************************/
-void EncoderRefershTask( void *pvParameters )
-{
-	portTickType xLastWakeTime;
-	u8 i;
-	u16 SpiBuffer16;
-    portBASE_TYPE xStatus;
-#ifdef TEST_ENCODER
-    s16 TestPosition;
-#endif
-	xLastWakeTime = xTaskGetTickCount();
-	
-	for(;;)
-	{
-		SPIx_CS_LOW();
-
-		/* Enable DMA SPI RX Stream */
-		DMA_Cmd(SPIx_RX_DMA_STREAM, ENABLE);
-		/* Enable DMA SPI TX Stream */
-		DMA_Cmd(SPIx_TX_DMA_STREAM, ENABLE);
-
-    	do{
-    		xStatus = xSemaphoreTake(xSPIDMASemaphore, 10/portTICK_RATE_MS);
-    	}while(xStatus==pdTRUE);
-			
-			SPIx_CS_HIGH();
-			
-			for(i=0;i<0x14;i++){
-				SpiBuffer16 = *(u16 *)(&Spi_RxBuffer[(i*3+1)]);
-				
-				if (i < 4){
-#ifdef TEST_ENCODER
-          if((i==PosRightFront)||(i==PosLeftBack)){
-            TestPosition = SpiBuffer16-(512+128);
-          }else if((i==PosLeftFront)||(i==PosRightBack)){
-            TestPosition = SpiBuffer16-(512-128);
-          }
-					DebugPrintf("Ch %i: %i\n", i, TestPosition);
-#endif
-					SetSteeringMotorPosition((i), SpiBuffer16);
-				} else if (i < 8){
-#ifdef TEST_ENCODER
-					DebugPrintf("Ch %i: %i\n", i, SpiBuffer16);
-#endif
-					SetCouplingsPosition((i-4), SpiBuffer16);
-				} else if (i<16){		
-					SetRemoteControl((i-8), SpiBuffer16);
-				}else{
-					SetAbsEncoderInt((i-16), SpiBuffer16);
-				}			
-			}
-
-		vTaskDelayUntil( &xLastWakeTime, 100 / portTICK_RATE_MS );
-	}
+	DebugPrintf("SPI test pass!\n");
 }
 
 /*****************************************************************************/
@@ -202,7 +196,7 @@ void EncoderRefershTask( void *pvParameters )
 * @note		None
 *
 ******************************************************************************/
-void EncoderInitialise(void)
+void SpiInitialise(void)
 {
 	GPIO_InitTypeDef GPIO_InitStructure;
 	SPI_InitTypeDef  SPI_InitStructure;
@@ -308,6 +302,5 @@ void EncoderInitialise(void)
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
 
-  
 	vSemaphoreCreateBinary(xSPIDMASemaphore);
 }

@@ -52,18 +52,10 @@ WheelMotor_4TypeDef      WheelMotor;
 SteeringMotor_4TypeDef   SteeringMotor;
 static	ElectricPutter_4TypeDef  ElectricPutter;
 static	Couplings_4TypeDef       Couplings;
-const	u16					RemoteControlDefault[8] ={
-		1462, 1439, 1439, 1466, 1062, 1411, 1062, 1047};
-/* 
- * 2.4G Ò£¿Ø
- */
-u16						RemoteControl[8];
 
 /* »úÆ÷ÈË×´Ì¬ */
 u8						RobotStatus;
 static u8				RobotBusy;
-
-static u16 				AbsEncoderInt[4];
 
 
 void ResetRoborBusy(void)
@@ -183,54 +175,6 @@ void SetCouplingsPosition(uint8_t Pos, uint16_t Value)
     }
 }
 
-/*****************************************************************************/
-/**
-*
-* SetRemoteControl
-*
-* @param  	Channel	0~7
-* @param	Data
-*
-* @return	None
-*
-* @note		None
-*
-******************************************************************************/
-void SetRemoteControl(uint8_t Channel, uint16_t Data)
-{
-	if((Data>1000)&&(Data<2000)){
-		RemoteControl[Channel] = Data;  
-	}else{
-		RemoteControl[Channel] = RemoteControlDefault[Channel];
-	}
-}
-
-/*****************************************************************************/
-/**
-*
-* GetRemoteControl
-*
-* @param  	Channel	0~7
-*
-* @return	Remote Control Value
-*
-* @note		None
-*
-******************************************************************************/
-uint16_t GetRemoteControl(uint8_t Channel)
-{
-	return RemoteControl[Channel];
-}
-
-void SetAbsEncoderInt(uint8_t Channel, uint16_t Data)
-{
-	AbsEncoderInt[Channel] = Data;  
-}
-
-u16 GetAbsEncoderInt(uint8_t Channel)
-{
-	return AbsEncoderInt[Channel];
-}
 /*****************************************************************************/
 /**
 *
