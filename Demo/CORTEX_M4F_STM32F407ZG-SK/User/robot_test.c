@@ -116,7 +116,6 @@ void SteeringMotorPosTestTask(void *pvParameters)
     portTickType xLastWakeTime;
 	DriverMsg_TypeDef DriverMsg;
 	DriverMsg_TypeDef *pDriverMsg = &DriverMsg;
-    u16 AbsEncoderInt;
 	s32 SteeringMotorRightFrontEncoderValue;
 	s32 SteeringMotorRightFrontDriverValue;
 
@@ -128,15 +127,14 @@ void SteeringMotorPosTestTask(void *pvParameters)
 			
 			pDriverMsg->Id = i;
 			GetMotoPos(pDriverMsg);
-			SteeringMotorRightFrontDriverValue = *(s32 *)(&(pDriverMsg->RxData[0]));
+			SteeringMotorRightFrontDriverValue = pDriverMsg->RxData.S32;
 			SteeringMotorRightFrontEncoderValue=GetSteeringMotorPosition(i-SteeringMotorId);
-			AbsEncoderInt = GetAbsEncoderInt(i-SteeringMotorId);
 
 			SteeringMotorRightFrontEncoderValue/=4;
 			SteeringMotorRightFrontDriverValue/=4;
 	    
-			DebugPrintf("SMRF:%i %i %i\n", SteeringMotorRightFrontEncoderValue, 
-					SteeringMotorRightFrontDriverValue, AbsEncoderInt);
+			DebugPrintf("SMRF:%i %i\n", SteeringMotorRightFrontEncoderValue, 
+					SteeringMotorRightFrontDriverValue);
 		}
 		vTaskDelayUntil( &xLastWakeTime, 300 / portTICK_RATE_MS );
 	}

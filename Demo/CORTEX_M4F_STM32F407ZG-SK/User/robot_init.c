@@ -55,10 +55,12 @@ void SteeringMotorPosInitTask(void *pvParameters)
 		for(i=SteeringMotorId;i<(SteeringMotorId+DirMax);i++){
 			Direction = i-SteeringMotorId;
 			pDriverMsg->Id = i;
-			*(s32 *)(&(pDriverMsg->RxData[0])) = GetSteeringMotorPosition(Direction);
+			pDriverMsg->TxData.S32 = GetSteeringMotorPosition(Direction);
 			SetMotoPos(pDriverMsg);
-			if((pDriverMsg->RxData[0])!=0){
+			if((pDriverMsg->RxData.S16)!=0){
 				/* Error */
+				DebugPrintf("Steering Motor Initialize Failed!\n");
+				while(1);
 			}
 		}
 		

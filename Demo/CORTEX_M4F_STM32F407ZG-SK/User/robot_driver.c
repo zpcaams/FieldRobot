@@ -26,15 +26,15 @@
 
 extern xQueueHandle xCANRcvQueue, xCANTransQueue;
 
+WheelMotor_TypeDef		WheelMotor[DirMax];
+SteeringMotor_TypeDef	SteeringMotor[DirMax];
+ElectricPutter_TypeDef	ElectricPutter[DirMax];
+
 /*****************************************************************************/
 /**
 * Send Command to Driver
 * 
-* @param	u32	Id			CAN Id of Target Driver
-* 			u8	Len			Length of CAN Message
-* 			u8	Cmd			Cmd to Sent, List in mlds_can.h
-* 			u8	*pTxData	Pointer Points the Data to Sent
-* 			s32	*pRxData	Pointer Points the Data wil Receive
+* @param	DriverMsg_TypeDef *DriverMsg
 *
 * @return	None
 *
@@ -60,7 +60,7 @@ static void DriverSendCmd(DriverMsg_TypeDef *DriverMsg)
     CANTxMessage.Data[3] = 0;
     
     for(i=4;i<(DriverMsg->Len);i++){
-    	CANTxMessage.Data[i] = *((DriverMsg->TxData)+i-4);
+    	CANTxMessage.Data[i] = DriverMsg->TxData.U8[i-4];
     }
     
     /* Send CAN Msg */
@@ -74,7 +74,7 @@ SEND_CAN_MSG:
 			(CANRxMessage.Data[2]==DriverMsg->Cmd)&&
 			(CANRxMessage.Data[3]==MLDS_ACK)){
 			for(i=0;i<4;i++){
-				DriverMsg->RxData[i] = CANRxMessage.Data[i+4];
+				DriverMsg->RxData.U8[i] = CANRxMessage.Data[i+4];
     			return;
 			}
 		}
@@ -85,7 +85,7 @@ SEND_CAN_MSG:
 /*****************************************************************************/
 /**
 *
-* Setup Moto Speed through CAN bus.
+* Set/Get Motor Speed.
 *
 * @param  	None
 *
@@ -94,46 +94,96 @@ SEND_CAN_MSG:
 * @note		None
 *
 ******************************************************************************/
-void SetMotoSpeed (DriverMsg_TypeDef *DriverMsg)
+void SetMotorSpeed (DriverMsg_TypeDef *DriverMsg)
 {
+	WheelMotor[(DriverMsg->Id)-WheelMotorId].V = DriverMsg.TxData.S32;
+	
 	DriverMsg->Len = 8;
 	DriverMsg->Cmd = MLDS_V;
+SEND_SPEED_CMD:
 	CANSendCmd(DriverMsg);
+	if((DriverMsg->RxData.S16)==0){
+		return;
+	}
+	goto SEND_SPEED_CMD;
 }
 
-void GetMotoSpeed (DriverMsg_TypeDef *DriverMsg)
+void GetMotorSpeed (DriverMsg_TypeDef *DriverMsg)
 {
 	DriverMsg->Len = 4;
 	DriverMsg->Cmd = MLDS_GV;
 	CANSendCmd(DriverMsg);
+	if((DriverMsg->Id)<(WheelMotorId)){
+		/* Do Nothing */
+	}else if((DriverMsg->Id)<(WheelMotorId+DirMax)){
+		WheelMotor[(DriverMsg->Id)-WheelMotorId].GV = DriverMsg->RxData.S32;
+	}else if((DriverMsg->Id)<(SteeringMotorId+DirMax)){
+		/* Do Nothing */
+	}else if((DriverMsg->Id)<(ElectricPutterId+DirMax)){
+		/* Do Nothing */
+	}else{
+		/* Do Nothing */
+	}
 }
 
-void GetMotoCurrent(DriverMsg_TypeDef *DriverMsg)
+void GetMotorCurrent(DriverMsg_TypeDef *DriverMsg)
 {
 	DriverMsg->Len = 4;
 	DriverMsg->Cmd = MLDS_GC;
 	CANSendCmd(DriverMsg);
+	if((DriverMsg->Id)<(WheelMotorId)){
+		/* Do Nothing */
+	}else if((DriverMsg->Id)<(WheelMotorId+DirMax)){
+		WheelMotor[(DriverMsg->Id)-WheelMotorId].GC = DriverMsg->RxData.S16;
+	}else if((DriverMsg->Id)<(SteeringMotorId+DirMax)){
+		SteeringMotor[(DriverMsg->Id)-SteeringMotorId].GC = DriverMsg->RxData.S16;
+	}else if((DriverMsg->Id)<(ElectricPutterId+DirMax)){
+		ElectricPutter[(DriverMsg->Id)-ElectricPutterId].GC = DriverMsg->RxData.S16;
+	}else{
+		/* Do Nothing */
+	}
 }
 
-void GetMotoTemp (DriverMsg_TypeDef *DriverMsg)
+void GetMotorTemp (DriverMsg_TypeDef *DriverMsg)
 {
 	DriverMsg->Len = 4;
 	DriverMsg->Cmd = MLDS_GT;
 	CANSendCmd(DriverMsg);
+	if((DriverMsg->Id)<(WheelMotorId)){
+		/* Do Nothing */
+	}else if((DriverMsg->Id)<(WheelMotorId+DirMax)){
+		WheelMotor[(DriverMsg->Id)-WheelMotorId].GT = DriverMsg->RxData.S16;
+	}else if((DriverMsg->Id)<(SteeringMotorId+DirMax)){
+		SteeringMotor[(DriverMsg->Id)-SteeringMotorId].GT = DriverMsg->RxData.S16;
+	}else if((DriverMsg->Id)<(ElectricPutterId+DirMax)){
+		ElectricPutter[(DriverMsg->Id)-ElectricPutterId].GT = DriverMsg->RxData.S16;
+	}else{
+		/* Do Nothing */
+	}
 }
 
-void GetMotoError (DriverMsg_TypeDef *DriverMsg)
+void GetMotorError (DriverMsg_TypeDef *DriverMsg)
 {
 	DriverMsg->Len = 4;
 	DriverMsg->Cmd = MLDS_GEI;
 	CANSendCmd(DriverMsg);
+	if((DriverMsg->Id)<(WheelMotorId)){
+		/* Do Nothing */
+	}else if((DriverMsg->Id)<(WheelMotorId+DirMax)){
+		WheelMotor[(DriverMsg->Id)-WheelMotorId].GEI = DriverMsg->RxData.U16;
+	}else if((DriverMsg->Id)<(SteeringMotorId+DirMax)){
+		SteeringMotor[(DriverMsg->Id)-SteeringMotorId].GEI = DriverMsg->RxData.U16;
+	}else if((DriverMsg->Id)<(ElectricPutterId+DirMax)){
+		ElectricPutter[(DriverMsg->Id)-ElectricPutterId].GEI = DriverMsg->RxData.U16;
+	}else{
+		/* Do Nothing */
+	}
 }
 
 /*****************************************************************************/
 /**
 *
-* Setup Steering Moto Position through CAN bus.
-* Position info from Remote Control Channel 1.
+* Set/Get Motor Position, Move to New Position
 *
 * @param  	None
 *
@@ -142,21 +192,65 @@ void GetMotoError (DriverMsg_TypeDef *DriverMsg)
 * @note		None
 *
 ******************************************************************************/
-void SetMotoPos (DriverMsg_TypeDef *DriverMsg)
+void SetMotorPos (DriverMsg_TypeDef *DriverMsg)
 {
 	DriverMsg->Len = 8;
-	DriverMsg->Cmd = MLDS_M;
+	DriverMsg->Cmd = MLDS_PO;
+SEND_POS_CMD:
 	CANSendCmd(DriverMsg);
+	if((DriverMsg->RxData.S16)==0){
+		return;
+	}
+	goto SEND_POS_CMD;
 }
 
-void GetMotoPos (DriverMsg_TypeDef *DriverMsg)
+void SetMotorMove (DriverMsg_TypeDef *DriverMsg)
+{	
+	WheelMotor[(DriverMsg->Id)-SteeringMotorId].M = DriverMsg.TxData.S32;
+	
+	DriverMsg->Len = 8;
+	DriverMsg->Cmd = MLDS_M;
+SEND_MOVE_CMD:
+	CANSendCmd(DriverMsg);
+	if((DriverMsg->RxData.S16)==0){
+		return;
+	}
+	goto SEND_MOVE_CMD;
+}
+
+void GetMotorPos (DriverMsg_TypeDef *DriverMsg)
 {
 	DriverMsg->Len = 4;
 	DriverMsg->Cmd = MLDS_GM;
 	CANSendCmd(DriverMsg);
+	if((DriverMsg->Id)<(WheelMotorId)){
+		/* Do Nothing */
+	}else if((DriverMsg->Id)<(WheelMotorId+DirMax)){
+		/* Do Nothing */
+	}else if((DriverMsg->Id)<(SteeringMotorId+DirMax)){
+		SteeringMotor[(DriverMsg->Id)-SteeringMotorId].GM = DriverMsg->RxData.S32;
+	}else if((DriverMsg->Id)<(ElectricPutterId+DirMax)){
+		/* Do Nothing */
+	}else{
+		/* Do Nothing */
+	}
 }
 
-void GetMotoType (DriverMsg_TypeDef *DriverMsg)
+void SetMotorPWM (DriverMsg_TypeDef *DriverMsg)
+{	
+	ElectricPutter[(DriverMsg->Id)-SteeringMotorId].AM = DriverMsg.TxData.S16;
+	
+	DriverMsg->Len = 6;
+	DriverMsg->Cmd = MLDS_AM;
+SEND_AM_CMD:
+	CANSendCmd(DriverMsg);
+	if((DriverMsg->RxData.S16)==0){
+		return;
+	}
+	goto SEND_AM_CMD;
+}
+
+void GetMotorType (DriverMsg_TypeDef *DriverMsg)
 {
 	DriverMsg->Len = 4;
 	DriverMsg->Cmd = MLDS_GDTY;
@@ -177,8 +271,8 @@ TEST_RESET:
 	
 	for(i=WheelMotorId;i<(WheelMotorId+4);i++){
 		pDriverMsg->Id = i;
-		GetMotoType(pDriverMsg);
-		if((pDriverMsg->RxData[0])!=0x4E){
+		GetMotorType(pDriverMsg);
+		if((pDriverMsg->RxData.U8[0])!=0x4E){
 			ErrorCounter++;
 			goto TEST_RESET;
 		}

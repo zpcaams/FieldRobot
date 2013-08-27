@@ -23,9 +23,9 @@
 /************************** Constant Definitions *****************************/\
  
 /* Moto Drivers CAN ID Base */
-#define WheelMotorId	4
-#define SteeringMotorId	8
-#define PutterId 		12
+#define WheelMotorId		4
+#define SteeringMotorId		8
+#define ElectricPutterId 	12
    
 /**************************** Type Definitions *******************************/
 
@@ -63,8 +63,17 @@ typedef struct
 	u8 	Id;			/* Driver Id */
 	u8 	Len;		/* CAN Msg Length */
 	u8 	Cmd;		/* Msg Command */
-	u8 	TxData[4];	/* TxData */
-	u8 	RxData[4];	/* RxData */
+	union{
+		u8 	U8[4];
+		s32	S32;
+		s16	S16;
+	}TxData;		/* TxData */
+	union{
+		u8 	U8[4];
+		s32	S32;
+		s16	S16;
+		u16	U16;
+	}RxData;		/* RxData */
 } DriverMsg_TypeDef;
  
 /***************** Macros (Inline Functions) Definitions *********************/
@@ -73,13 +82,15 @@ typedef struct
 
 void DriverSelfTest(void);
 
-void SetMotoSpeed (DriverMsg_TypeDef *DriverMsg);
-void GetMotoSpeed (DriverMsg_TypeDef *DriverMsg);
-void GetMotoCurrent (DriverMsg_TypeDef *DriverMsg);
-void GetMotoTemp (DriverMsg_TypeDef *DriverMsg);
-void GetMotoError (DriverMsg_TypeDef *DriverMsg);
-void SetMotoPos (DriverMsg_TypeDef *DriverMsg);
-void GetMotoPos (DriverMsg_TypeDef *DriverMsg);
+void SetMotorSpeed (DriverMsg_TypeDef *DriverMsg);
+void GetMotorSpeed (DriverMsg_TypeDef *DriverMsg);
+void GetMotorCurrent (DriverMsg_TypeDef *DriverMsg);
+void GetMotorTemp (DriverMsg_TypeDef *DriverMsg);
+void GetMotorError (DriverMsg_TypeDef *DriverMsg);
+void SetMotorPos (DriverMsg_TypeDef *DriverMsg);
+void SetMotorMove (DriverMsg_TypeDef *DriverMsg);
+void GetMotorPos (DriverMsg_TypeDef *DriverMsg);
+void SetMotorPWM (DriverMsg_TypeDef *DriverMsg);
 void GetMotoType (DriverMsg_TypeDef *DriverMsg);
 
 #ifdef __cplusplus
