@@ -1,45 +1,35 @@
 /*****************************************************************************/
 /**
 *
-* @file robot_test.h
+* @file robot_can.h
 *
 *
 ******************************************************************************/
 
-#ifndef ROBOT_TEST_H
-#define ROBOT_TEST_H
+#ifndef ROBOT_CAN_H
+#define ROBOT_CAN_H
 
 #ifdef __cplusplus
-	extern "C" {
+ extern "C" {
 #endif
 
 /***************************** Include Files *********************************/
 
-/* Kernel includes. */
-#include "FreeRTOS.h"
-#include "task.h"
-#include "queue.h"
-#include "semphr.h"
- 
-#include "robot_status.h"
-#include "robot_couplings.h"
-	
+#include "robot_common.h"
+
 /************************** Constant Definitions *****************************/
-	
+
+#define CANMsgSend_TASK_PRIORITY				    ( tskIDLE_PRIORITY + 4UL )
+
 /**************************** Type Definitions *******************************/
 
 /***************** Macros (Inline Functions) Definitions *********************/
 
 /************************** Function Prototypes ******************************/
-
-void EnterRobotTestStatus (void);
-void EnterRobotTestStopStatus (void);
-void RobotTestTask (void *pvParameters);
-void RobotTestStopTask (void *pvParameters);
-void SteeringMotorPosTestTask(void *pvParameters);
+void CANInitialise(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* ROBOT_TEST_H */
+#endif /* ROBOT_DRIVER_H */

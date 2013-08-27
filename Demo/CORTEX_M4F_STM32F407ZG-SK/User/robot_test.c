@@ -25,8 +25,6 @@
 /************************** Variable Definitions *****************************/
 
 extern u8						RobotStatus;
-extern WheelMotor_4TypeDef		WheelMotor;
-extern SteeringMotor_4TypeDef	SteeringMotor;
 extern u16						RemoteControl[8];
 
 u8 CouplingsSellect (void)
@@ -98,4 +96,48 @@ void RobotTestStopTask (void *pvParameters)
 		vTaskDelayUntil( &xLastWakeTime, 100 / portTICK_RATE_MS );
     
     }   
+}
+
+/*****************************************************************************/
+/**
+*
+* Steering Motor Position Test Task.
+*
+* @param  	None
+*
+* @return	None
+*
+* @note		Print Position Get from Encoder and Driver.
+*
+******************************************************************************/
+void SteeringMotorPosTestTask(void *pvParameters)
+{
+	u8 i;
+    portTickType xLastWakeTime;
+	DriverMsg_TypeDef DriverMsg;
+	DriverMsg_TypeDef *pDriverMsg = &DriverMsg;
+    u16 AbsEncoderInt;
+	s32 SteeringMotorRightFrontEncoderValue;
+	s32 SteeringMotorRightFrontDriverValue;
+
+    xLastWakeTime = xTaskGetTickCount();
+    
+	for(;;){
+		
+		for(i=SteeringMotorId;i<(SteeringMotorId+4);i++){
+			
+			pDriverMsg->Id = i;
+			GetMotoPos(pDriverMsg);
+			SteeringMotorRightFrontDriverValue = *(s32 *)(&(pDriverMsg->RxData[0]));
+			SteeringMotorRightFrontEncoderValue=GetSteeringMotorPosition(i-SteeringMotorId);
+			AbsEncoderInt = GetAbsEncoderInt(i-SteeringMotorId);
+
+			SteeringMotorRightFrontEncoderValue/=4;
+			SteeringMotorRightFrontDriverValue/=4;
+	    
+			DebugPrintf("SMRF:%i %i %i\n", SteeringMotorRightFrontEncoderValue, 
+					SteeringMotorRightFrontDriverValue, AbsEncoderInt);
+		}
+		vTaskDelayUntil( &xLastWakeTime, 300 / portTICK_RATE_MS );
+	}
 }

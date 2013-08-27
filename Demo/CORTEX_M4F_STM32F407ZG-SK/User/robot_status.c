@@ -48,11 +48,6 @@
 
 xSemaphoreHandle RobotStatusSemaphore;
 
-WheelMotor_4TypeDef      WheelMotor;
-SteeringMotor_4TypeDef   SteeringMotor;
-static	ElectricPutter_4TypeDef  ElectricPutter;
-static	Couplings_4TypeDef       Couplings;
-
 /* »úÆ÷ÈË×´Ì¬ */
 u8						RobotStatus;
 static u8				RobotBusy;
