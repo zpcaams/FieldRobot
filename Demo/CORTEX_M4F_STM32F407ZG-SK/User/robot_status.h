@@ -14,21 +14,15 @@
 #endif
 
 /***************************** Include Files *********************************/
- 
-/* Kernel includes. */
-#include "FreeRTOS.h"
-#include "task.h"
-#include "queue.h"
-#include "semphr.h"
 
-/* ST Driver includes. */
-#include "stm32f4xx_conf.h"
- 
 /* Robot includes */
-#include "robot_encoder.h"
+#include "robot_common.h"
+#include "robot_remote_control.h"
 #include "robot_driver.h"
 #include "robot_move.h"
 #include "robot_test.h"
+#include "robot_spi.h"
+#include "robot_adc.h"
  
 /************************** Constant Definitions *****************************/
 
@@ -106,13 +100,6 @@
 /************************** Function Prototypes ******************************/
 
 void GreatRobotMainTask(void); 
-void SetSteeringMotorPosition(uint8_t Po, uint16_t GP);
-s32 GetSteeringMotorPosition(u8 Pos);
-void SetCouplingsPosition(uint8_t Po, uint16_t GP);
-void SetRemoteControl(uint8_t Channel, uint16_t Data);
-uint16_t GetRemoteControl(uint8_t Channel);
-void SetAbsEncoderInt(uint8_t Channel, uint16_t Data);
-u16 GetAbsEncoderInt(uint8_t Channel);
 void ResetRoborBusy(void);
 
 #ifdef __cplusplus

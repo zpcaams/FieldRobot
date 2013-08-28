@@ -27,20 +27,19 @@
 
 /************************** Variable Definitions *****************************/
 
-static			u16	RemoteControl[8];
 const	static	u16	RemoteControlDefault[8] ={
 		1462, 1439, 1439, 1466, 1062, 1411, 1062, 1047};
 
 //	Channel 8~15 	2.4G remote control
 u16 GetRemoteControl(u8 Channel)
 {
-	u8 *pBuf;
+	u8 *pBuf=NULL;
 	s16 Value;
 	
 	GetSpiBuffer(pBuf);
 	Value = *(u16 *)(pBuf+((Channel-8)*3)+1);
 	
-	if((Value>1000)&&(Data<Value)){
+	if((Value>1000)&&(Value<2000)){
 		return Value;
 	}else{
 		return RemoteControlDefault[Channel];

@@ -17,20 +17,8 @@
 
 /************************** Constant Definitions *****************************/
 
-/* Steering Motor Encoder Adjustment*/
-#define SMLF_ADJ    0
-#define SMRF_ADJ    (-688)
-#define SMRB_ADJ    0
-#define SMLB_ADJ    0
-
-/* Couplings Encoder Adjustment*/
-#define CPLF_ADJ    0
-#define CPRF_ADJ    0
-#define CPRB_ADJ    0
-#define CPLB_ADJ    0
-
-#define MainSwitchOff	(RemoteControl[7]<1439)
-#define ModeSellect		(RemoteControl[6])
+#define MainSwitchOff	(GetRemoteControl(8-1)<1439)
+#define ModeSellect		(GetRemoteControl(7-1))
 #define MODE_MOVE		1100
 #define MODE_TURN		1200
 #define MODE_ROLL		1300
@@ -56,118 +44,6 @@ static u8				RobotBusy;
 void ResetRoborBusy(void)
 {
 	RobotBusy = 0;
-}
-
-s32 CnvtAbsEncoderVal(u16 Value, s16 Adj)
-{
-	s32 temp;
-	temp = Value + Adj;
-	if(temp<-512){
-		temp+=1024;
-	}else if(temp>511){
-		temp-=1024;
-	}
-	temp*=4;	//ËÄ±¶ÏßÊý
-	return temp;
-}
-/*****************************************************************************/
-/**
-*
-* SetSteeringMotorPosition
-*
-* @param  	Pos
-* @param	Value
-*
-* @return	None
-*
-* @note		None
-*
-******************************************************************************/
-void SetSteeringMotorPosition(u8 Pos, u16 Value)
-{
-	s32 temp;
-	
-    switch (Pos){
-        case PosLeftFront:{
-            SteeringMotor.LeftFront.GP = CnvtAbsEncoderVal(Value, SMLF_ADJ);
-            break;
-        }
-        case PosRightFront: {
-        	temp = CnvtAbsEncoderVal(Value, SMRF_ADJ);
-            SteeringMotor.RightFront.GP = temp;
-//			DebugPrintf("SMRF:%i\n", temp);
-            break;
-        }        
-        case PosRightBack: {
-            SteeringMotor.RightBack.GP = CnvtAbsEncoderVal(Value, SMRB_ADJ);
-            break;
-        }        
-        case PosLeftBack: {
-            SteeringMotor.LeftBack.GP = CnvtAbsEncoderVal(Value, SMLB_ADJ);
-            break;
-        }
-        default:{
-            break;
-        }
-    }
-}
-
-s32 GetSteeringMotorPosition(u8 Pos)
-{
-    switch (Pos){
-        case PosLeftFront:{
-            return SteeringMotor.LeftFront.GP;
-        }
-        case PosRightFront: {
-        	return SteeringMotor.RightFront.GP;
-        }        
-        case PosRightBack: {
-        	return SteeringMotor.RightBack.GP;
-        }        
-        case PosLeftBack: {
-        	return SteeringMotor.LeftBack.GP;
-        }
-        default:{
-        	return 0;
-        }
-    }
-}
-/*****************************************************************************/
-/**
-*
-* SetCouplingsPosition
-*
-* @param  	Pos
-* @param	Value
-*
-* @return	None
-*
-* @note		None
-*
-******************************************************************************/
-void SetCouplingsPosition(uint8_t Pos, uint16_t Value)
-{
-    switch (Pos){
-        case PosLeftFront:{
-            Couplings.LeftFront.GP = Value+CPLF_ADJ;
-            break;
-        }
-        case PosRightFront: {
-            Couplings.RightFront.GP = Value+CPRF_ADJ;
-            break;
-        }        
-        case PosRightBack: {
-            Couplings.RightBack.GP = Value+CPRB_ADJ;
-            break;
-        }        
-        case PosLeftBack: {
-            Couplings.LeftBack.GP = Value+CPLB_ADJ;
-            break;
-        }
-        default:{
-            break;
-        }
-    }
 }
 
 /*****************************************************************************/
@@ -209,7 +85,7 @@ void RobotMainTask (void *pvParameters)
         	SPISelfTest();
         	DebugPrintf("SPI SelfTest Done!\n");
         	DebugPrintf("Create Encoder Refersh Task\n");
-        	xTaskCreate( EncoderRefershTask, ( signed char * ) "Encoder",
+        	xTaskCreate( SpiRefershTask, ( signed char * ) "Encoder",
         			configMINIMAL_STACK_SIZE, NULL, Encoder_TASK_PRIORITY, NULL );
 #ifdef VCC48VON
         	CANSelfTest();
@@ -224,7 +100,8 @@ void RobotMainTask (void *pvParameters)
 #endif
 
         	DebugPrintf("Create ADC Refersh Task\n");
-        	AdcRefershTask();
+        	xTaskCreate( AdcRefershTask, ( signed char * ) "PosInit",
+        			configMINIMAL_STACK_SIZE, NULL, AdcRefersh_TASK_PRIORITY, NULL );
         	
         	DebugPrintf("Robot Initialize Done!\n");
         	RobotStatus = ROBOT_IDLE;

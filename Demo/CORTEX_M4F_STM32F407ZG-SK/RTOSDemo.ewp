@@ -1084,6 +1084,51 @@
   </group>
   <group>
     <name>User</name>
+    <group>
+      <name>LowLevelHardware</name>
+      <file>
+        <name>$PROJ_DIR$\User\robot_adc.c</name>
+      </file>
+      <file>
+        <name>$PROJ_DIR$\User\robot_can.c</name>
+      </file>
+      <file>
+        <name>$PROJ_DIR$\User\robot_spi.c</name>
+      </file>
+    </group>
+    <group>
+      <name>MidLevelDriver</name>
+      <file>
+        <name>$PROJ_DIR$\User\robot_couplings.c</name>
+      </file>
+      <file>
+        <name>$PROJ_DIR$\User\robot_debug.c</name>
+      </file>
+      <file>
+        <name>$PROJ_DIR$\User\robot_driver.c</name>
+      </file>
+      <file>
+        <name>$PROJ_DIR$\User\robot_position.c</name>
+      </file>
+      <file>
+        <name>$PROJ_DIR$\User\robot_remote_control.c</name>
+      </file>
+    </group>
+    <group>
+      <name>TopLevel</name>
+      <file>
+        <name>$PROJ_DIR$\User\robot_init.c</name>
+      </file>
+      <file>
+        <name>$PROJ_DIR$\User\robot_move.c</name>
+      </file>
+      <file>
+        <name>$PROJ_DIR$\User\robot_status.c</name>
+      </file>
+      <file>
+        <name>$PROJ_DIR$\User\robot_test.c</name>
+      </file>
+    </group>
     <file>
       <name>$PROJ_DIR$\FreeRTOSConfig.h</name>
     </file>
@@ -1095,30 +1140,6 @@
     </file>
     <file>
       <name>$PROJ_DIR$\RegTest.s</name>
-    </file>
-    <file>
-      <name>$PROJ_DIR$\User\robot_adc.c</name>
-    </file>
-    <file>
-      <name>$PROJ_DIR$\User\robot_couplings.c</name>
-    </file>
-    <file>
-      <name>$PROJ_DIR$\User\robot_debug.c</name>
-    </file>
-    <file>
-      <name>$PROJ_DIR$\User\robot_driver.c</name>
-    </file>
-    <file>
-      <name>$PROJ_DIR$\User\robot_encoder.c</name>
-    </file>
-    <file>
-      <name>$PROJ_DIR$\User\robot_move.c</name>
-    </file>
-    <file>
-      <name>$PROJ_DIR$\User\robot_status.c</name>
-    </file>
-    <file>
-      <name>$PROJ_DIR$\User\robot_test.c</name>
     </file>
     <file>
       <name>$PROJ_DIR$\stm32f4xx_it.c</name>

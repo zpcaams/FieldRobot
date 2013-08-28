@@ -15,13 +15,10 @@
 
 /***************************** Include Files *********************************/
 
-/* Kernel includes. */
-#include "FreeRTOS.h"
-#include "task.h"
-#include "queue.h"
-#include "semphr.h"
  
-#include "robot_status.h"
+#include "robot_common.h"
+#include "robot_remote_control.h"
+#include "robot_position.h"
 #include "robot_couplings.h"
 	
 /************************** Constant Definitions *****************************/

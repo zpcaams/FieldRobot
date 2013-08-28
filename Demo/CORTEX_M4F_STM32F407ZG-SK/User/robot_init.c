@@ -24,7 +24,7 @@
 
 /************************** Variable Definitions *****************************/
 
-
+extern	xSemaphoreHandle RobotStatusSemaphore;
 
 /*****************************************************************************/
 /**
@@ -41,22 +41,20 @@
 ******************************************************************************/
 void SteeringMotorPosInitTask(void *pvParameters)
 {
-	u8 i;
+	Dir_TypeDef Dir;
     portTickType xLastWakeTime;
 	DriverMsg_TypeDef DriverMsg;
 	DriverMsg_TypeDef *pDriverMsg = &DriverMsg;
-	s32 Position;
-	Dir_TypeDef Direction;
 	
     xLastWakeTime = xTaskGetTickCount();
     
 	for(;;){
 
-		for(i=SteeringMotorId;i<(SteeringMotorId+DirMax);i++){
-			Direction = i-SteeringMotorId;
-			pDriverMsg->Id = i;
-			pDriverMsg->TxData.S32 = GetSteeringMotorPosition(Direction);
-			SetMotoPos(pDriverMsg);
+		pDriverMsg->Base = SM_BASE;
+		for(Dir=DirMin;Dir<DirMax;Dir++){
+			pDriverMsg->Dir = Dir;
+			pDriverMsg->TxData.S32 = GetSterringMotorPosition(Dir);
+			SetMotorPos(pDriverMsg);
 			if((pDriverMsg->RxData.S16)!=0){
 				/* Error */
 				DebugPrintf("Steering Motor Initialize Failed!\n");

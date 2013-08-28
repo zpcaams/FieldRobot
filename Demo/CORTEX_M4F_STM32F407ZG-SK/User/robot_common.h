@@ -29,11 +29,14 @@
  
 /************************** Constant Definitions *****************************/
 
+#define AdcRefersh_TASK_PRIORITY				    ( tskIDLE_PRIORITY + 4UL )
+	
 /**************************** Type Definitions *******************************/
 
  /* Direction Define */
  typedef enum 
  {
+	DirMin		= 0,
  	LeftFront	= 0,
  	RightFront	= 1,
  	RightBack	= 2,

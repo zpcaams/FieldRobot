@@ -26,7 +26,6 @@
 #include "robot_debug.h"
 	
 /************************** Constant Definitions *****************************/
-
  
 /**************************** Type Definitions *******************************/
 
@@ -34,6 +33,7 @@
 
 /************************** Function Prototypes ******************************/
 
+void AdcInitialise(void);
 void AdcRefershTask( void *pvParameters );
 
 #ifdef __cplusplus

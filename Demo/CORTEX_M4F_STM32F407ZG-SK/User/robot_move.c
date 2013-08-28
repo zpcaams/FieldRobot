@@ -25,8 +25,9 @@
 /************************** Variable Definitions *****************************/
 
 extern u8		RobotStatus;
-extern WheelMotor_4TypeDef      WheelMotor;
-extern SteeringMotor_4TypeDef   SteeringMotor;
+extern WheelMotor_TypeDef		WheelMotor[DirMax];
+extern SteeringMotor_TypeDef	SteeringMotor[DirMax];
+
 /*****************************************************************************/
 /**
 *
@@ -61,21 +62,22 @@ void RobotMoveTask (void *pvParameters)
     xLastWakeTime = xTaskGetTickCount();
 
     for( ; ; )
-    {    
+    {
         /* calculate the speed here */
 		Speed = (GetRemoteControl(3-1)-1440)/8;
 		if((Speed<5)&&(Speed>-5)){
 			Speed = 0;
 		}
 		DebugPrintf("Speed %i\n", Speed);
-		
-		pDriverMsg->Id = WheelMotorId + PosRightFront;
-		*(s32 *)(&(pDriverMsg->RxData[0])) = Speed;
-		SetMotoSpeed (pDriverMsg);
-		GetMotoSpeed (pDriverMsg);
-		GetMotoCurrent (pDriverMsg);
-		GetMotoTemp (pDriverMsg);
-		GetMotoError (pDriverMsg);
+
+		pDriverMsg->Base = WM_BASE;
+		pDriverMsg->Dir = RightFront;
+		pDriverMsg->TxData.S32 = Speed;
+		SetMotorSpeed (pDriverMsg);
+		GetMotorSpeed (pDriverMsg);
+		GetMotorCurrent (pDriverMsg);
+		GetMotorTemp (pDriverMsg);
+		GetMotorError (pDriverMsg);
 		
 	    /* Calculate the Position here */
 	    Position = -(GetRemoteControl(1-1)-1460);
@@ -83,14 +85,15 @@ void RobotMoveTask (void *pvParameters)
 			Position = 0;
 		}	    
 	    DebugPrintf("Pos %i\n", Position);
-	    
-		pDriverMsg->Id = SteeringMotorId + PosRightFront;
-		*(s32 *)(&(pDriverMsg->RxData[0])) = Position;
-		SetMotoPos (pDriverMsg);
-		GetMotoSpeed (pDriverMsg);
-		GetMotoCurrent (pDriverMsg);
-		GetMotoTemp (pDriverMsg);
-		GetMotoError (pDriverMsg);
+
+		pDriverMsg->Base = SM_BASE;
+		pDriverMsg->Dir = RightFront;
+		pDriverMsg->TxData.S32 = Position;
+		SetMotorPos (pDriverMsg);
+		GetMotorSpeed (pDriverMsg);
+		GetMotorCurrent (pDriverMsg);
+		GetMotorTemp (pDriverMsg);
+		GetMotorError (pDriverMsg);
 		
 //		DebugPrintf("RobotMoveTask is running\n");
 		
@@ -117,26 +120,28 @@ void RobotMoveStopTask (void *pvParameters)
     for( ; ; )
     {
 		Speed = 0;
-		pDriverMsg->Id = WheelMotorId + PosRightFront;
-		*(s32 *)(&(pDriverMsg->RxData[0])) = Speed;
-		SetMotoSpeed (pDriverMsg);
-		GetMotoSpeed (pDriverMsg);
-		GetMotoCurrent (pDriverMsg);
-		GetMotoTemp (pDriverMsg);
-		GetMotoError (pDriverMsg);
-	    
+		pDriverMsg->Base = WM_BASE;
+		pDriverMsg->Dir = RightFront;
+		pDriverMsg->TxData.S32 = Speed;
+		SetMotorSpeed (pDriverMsg);
+		GetMotorSpeed (pDriverMsg);
+		GetMotorCurrent (pDriverMsg);
+		GetMotorTemp (pDriverMsg);
+		GetMotorError (pDriverMsg);
+		
 		Position = 0;
-		pDriverMsg->Id = SteeringMotorId + PosRightFront;
-		*(s32 *)(&(pDriverMsg->RxData[0])) = Position;
-		SetMotoPos (pDriverMsg);
-		GetMotoSpeed (pDriverMsg);
-		GetMotoCurrent (pDriverMsg);
-		GetMotoTemp (pDriverMsg);
-		GetMotoError (pDriverMsg);
+		pDriverMsg->Base = SM_BASE;
+		pDriverMsg->Dir = RightFront;
+		pDriverMsg->TxData.S32 = Position;
+		SetMotorPos (pDriverMsg);
+		GetMotorSpeed (pDriverMsg);
+		GetMotorCurrent (pDriverMsg);
+		GetMotorTemp (pDriverMsg);
+		GetMotorError (pDriverMsg);
 		
 //		DebugPrintf("RobotMoveStopTask is running\n");
 		
-		if((WheelMotor.RightFront.GV==0)&&(SteeringMotor.RightFront.GP==0)){
+		if((WheelMotor[RightFront].GV==0)&&(SteeringMotor[RightFront].GM==0)){
 	    	ResetRoborBusy();
 			vTaskDelete(NULL);
 		}

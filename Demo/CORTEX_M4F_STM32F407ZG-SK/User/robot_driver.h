@@ -19,6 +19,8 @@
 
 /* MLDS includes. */
 #include "mlds_can.h"
+   
+#include "robot_can.h"
 
 /************************** Constant Definitions *****************************/\
 

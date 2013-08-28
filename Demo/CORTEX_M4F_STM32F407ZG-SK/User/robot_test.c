@@ -29,8 +29,8 @@ extern u16						RemoteControl[8];
 
 u8 CouplingsSellect (void)
 {
-	if((RemoteControl[3-1]>1189)&&(RemoteControl[3-1]<1742)){
-		return (RemoteControl[6-1]-RemoteControl[3-1]+75);
+	if((GetRemoteControl(3-1)>1189)&&(GetRemoteControl(3-1)<1742)){
+		return (GetRemoteControl(6-1)-GetRemoteControl(3-1)+75);
 	}else{
 		return 0;
 	}
@@ -112,7 +112,7 @@ void RobotTestStopTask (void *pvParameters)
 ******************************************************************************/
 void SteeringMotorPosTestTask(void *pvParameters)
 {
-	u8 i;
+	Dir_TypeDef Dir;
     portTickType xLastWakeTime;
 	DriverMsg_TypeDef DriverMsg;
 	DriverMsg_TypeDef *pDriverMsg = &DriverMsg;
@@ -122,13 +122,14 @@ void SteeringMotorPosTestTask(void *pvParameters)
     xLastWakeTime = xTaskGetTickCount();
     
 	for(;;){
-		
-		for(i=SteeringMotorId;i<(SteeringMotorId+4);i++){
+
+		pDriverMsg->Base = SM_BASE;
+		for(Dir=DirMin;Dir<DirMax;Dir++){
 			
-			pDriverMsg->Id = i;
-			GetMotoPos(pDriverMsg);
+			pDriverMsg->Dir = Dir;
+			GetMotorPos(pDriverMsg);
 			SteeringMotorRightFrontDriverValue = pDriverMsg->RxData.S32;
-			SteeringMotorRightFrontEncoderValue=GetSteeringMotorPosition(i-SteeringMotorId);
+			SteeringMotorRightFrontEncoderValue = GetSteeringMotorPosition(Dir);
 
 			SteeringMotorRightFrontEncoderValue/=4;
 			SteeringMotorRightFrontDriverValue/=4;

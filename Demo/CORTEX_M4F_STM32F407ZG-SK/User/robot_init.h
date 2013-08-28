@@ -16,8 +16,8 @@
 /***************************** Include Files *********************************/
 
 #include "robot_common.h"
-
 #include "robot_driver.h"
+#include "robot_position.h"
 
 /************************** Constant Definitions *****************************/\
  

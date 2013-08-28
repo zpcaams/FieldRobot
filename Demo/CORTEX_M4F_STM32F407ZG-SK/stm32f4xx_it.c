@@ -29,8 +29,8 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f4xx_it.h"
-#include "main.h"
-#include "robot_driver.h"
+#include "robot_common.h"
+#include "robot_spi.h"
 
 /** @addtogroup STM32F4xx_StdPeriph_Examples
   * @{

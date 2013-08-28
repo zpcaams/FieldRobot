@@ -181,15 +181,3 @@ void CANInitialise(void)
   xTaskCreate( CANMsgSendTask, ( signed char * ) "Can1Send", 
 		  configMINIMAL_STACK_SIZE, NULL, CANMsgSend_TASK_PRIORITY, NULL );
 }
-
-#endif
-
-/**
-  * @}
-  */
-
-/**
-  * @}
-  */
-
-/************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

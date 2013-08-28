@@ -374,8 +374,8 @@ static void prvSetupHardware( void )
 	/* Setup the Usart outputs. */
   DebugInitialise();
         
-  /* Setup the EncoderSensor Interface. */
-	EncoderInitialise();
+  /* Setup the SPI Interface. */
+	SpiInitialise();
         
   /* Setup the CAN Interface. */
 	CANInitialise();

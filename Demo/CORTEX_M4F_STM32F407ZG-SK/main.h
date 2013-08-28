@@ -62,11 +62,12 @@
 #include "stm32f4xx.h"
 #include "stm32f4xx_conf.h"
 
+#include "robot_common.h"
 #include "robot_status.h"
-#include "robot_debug.h"
-#include "robot_encoder.h"
-#include "robot_driver.h"
-#include "robot_couplings.h"
+#include "robot_adc.h"
+#include "robot_can.h"
+#include "robot_spi.h"
+   
    
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/

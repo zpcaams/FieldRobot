@@ -42,18 +42,6 @@
 #define SPIx_CS_GPIO_PORT          GPIOB                       /* GPIOB */
 #define SPIx_CS_GPIO_CLK           RCC_AHB1Periph_GPIOB
 
-#define SPIx_DMA                   	DMA1
-#define SPIx_DMA_CLK               	RCC_AHB1Periph_DMA1
-#define SPIx_TX_DMA_CHANNEL        	DMA_Channel_0
-#define SPIx_TX_DMA_STREAM         	DMA1_Stream4
-#define SPIx_TX_DMA_FLAG_TCIF      	DMA_FLAG_TCIF4
-#define SPIx_RX_DMA_CHANNEL        	DMA_Channel_0
-#define DMA_STREAM_IRQ           	DMA1_Stream3_IRQn
-#define SPIx_RX_DMA_STREAM         	DMA1_Stream3
-#define SPIx_RX_DMA_FLAG_TCIF      	DMA_FLAG_TCIF3
-#define DMA_STREAM_IRQHANDLER    	DMA1_Stream3_IRQHandler
-#define SPIx_DMA_BUFFER_SIZE       	(0x15*3)
-
 /**************************** Type Definitions *******************************/
 
 /***************** Macros (Inline Functions) Definitions *********************/
