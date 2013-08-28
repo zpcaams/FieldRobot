@@ -15,18 +15,3 @@
 	STM32F4xx_StdPeriph_Driver
 
 Demo/CORTEX_M4F_STM32F407ZG-SK\User 是主要工作文件夹，机器人控制代码将在这里实现。
-
-软件结构
-顶层--
-	User/robot_status.c	机器人状态转换
-	User/robot_move.c	机器人平移状态控制
-	User/robot_test.c	机器人顶层测试
-
-设备驱动层--
-	User/robot_adc.c     	推杆位置获取（ADC）
-	User/robot_couplings.c	联轴器控制（GPO）
-	User/robot_debug.c      调试输出（USART）
-	User/robot_driver.c     电机驱动器驱动（CAN）
-	User/robot_encoder.c    编码器和遥控器信息获取（SPI）
-底层--
-	STM32F4相关库
