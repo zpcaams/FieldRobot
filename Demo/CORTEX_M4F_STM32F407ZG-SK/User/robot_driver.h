@@ -21,13 +21,16 @@
 #include "mlds_can.h"
 
 /************************** Constant Definitions *****************************/\
- 
-/* Moto Drivers CAN ID Base */
-#define WheelMotorId		4
-#define SteeringMotorId		8
-#define ElectricPutterId 	12
-   
+
 /**************************** Type Definitions *******************************/
+
+/* Moto Drivers CAN ID Base */
+typedef enum 
+{
+	WM_BASE	= 4,
+	SM_BASE	= 8,
+	EP_BASE	= 12
+} IdBase_TypeDef;
 
 /* ÂÖì±µç»ú */
 typedef struct
@@ -60,19 +63,20 @@ typedef struct
 
 typedef struct
 {
-	u8 	Id;			/* Driver Id */
-	u8 	Len;		/* CAN Msg Length */
-	u8 	Cmd;		/* Msg Command */
+	IdBase_TypeDef 	Base;		/* Driver Id Base */
+	Dir_TypeDef 	Dir;		/* Driection of the Driver */
+	u8 				Len;		/* CAN Msg Length */
+	u8 				Cmd;		/* Msg Command */
 	union{
-		u8 	U8[4];
-		s32	S32;
-		s16	S16;
+		u8 			U8[4];
+		s32			S32;
+		s16			S16;
 	}TxData;		/* TxData */
 	union{
-		u8 	U8[4];
-		s32	S32;
-		s16	S16;
-		u16	U16;
+		u8 			U8[4];
+		s32			S32;
+		s16			S16;
+		u16			U16;
 	}RxData;		/* RxData */
 } DriverMsg_TypeDef;
  
