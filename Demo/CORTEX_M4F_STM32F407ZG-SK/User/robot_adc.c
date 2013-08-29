@@ -16,7 +16,8 @@
 /************************** Constant Definitions *****************************/
 
 #define	ADCx  ADC1
-#define	ADCx_BUFFER_SIZE	DirMax
+#define	AVERAGE_NUM	32
+#define	ADCx_BUFFER_SIZE	(DirMax*AVERAGE_NUM)
 
 /**************************** Type Definitions *******************************/
 
@@ -31,6 +32,7 @@ u16 ADCx_Buffer[ADCx_BUFFER_SIZE];
 void AdcRefershTask( void *pvParameters )
 {
 	Dir_TypeDef  i;
+	u8	j;
 	u32 temp;
 	portTickType xLastWakeTime;
 	xLastWakeTime = xTaskGetTickCount();
@@ -39,7 +41,11 @@ void AdcRefershTask( void *pvParameters )
 	{
 	/* convert the ADC value (from 0 to 0xFFF) to a voltage value (from 0V to 3.3V)*/
 		for(i=DirMin;i<DirMax;i++){
-			temp = ADCx_Buffer[i] *3300/0xFFF;
+			temp = 0;
+			for(j=0;j<AVERAGE_NUM;j++){
+				temp += ADCx_Buffer[i+j*DirMax];
+			}
+			temp = temp *3300/(0xFFF*AVERAGE_NUM);
 			DebugPrintf("%i\n", temp);
 		}
 		DebugPrintf("\n");
