@@ -15,15 +15,7 @@
 
 /***************************** Include Files *********************************/
 
-/* Kernel includes. */
-#include "FreeRTOS.h"
-#include "task.h"
-
-/* ST Driver includes. */
-#include "stm32f4xx_conf.h"
-
-/* Robot includes */
-#include "robot_debug.h"
+#include "robot_common.h"
 	
 /************************** Constant Definitions *****************************/
  

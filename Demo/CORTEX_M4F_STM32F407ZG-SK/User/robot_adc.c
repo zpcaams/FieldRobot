@@ -10,63 +10,65 @@
 ******************************************************************************/
 
 /***************************** Include Files *********************************/
+
 #include "robot_adc.h"
 
 /************************** Constant Definitions *****************************/
 
+#define	ADCx  ADC1
+#define	ADCx_BUFFER_SIZE	DirMax
 
 /**************************** Type Definitions *******************************/
 
 /***************** Macros (Inline Functions) Definitions *********************/
 
-#define ADC3_DR_ADDRESS     ((uint32_t)0x4001224C)
-
 /************************** Function Prototypes ******************************/
 
 /************************** Variable Definitions *****************************/
 
-__IO uint16_t ADC3ConvertedValue = 0;
-__IO uint32_t ADC3ConvertedVoltage = 0;
+u16 ADCx_Buffer[ADCx_BUFFER_SIZE];
 
 void AdcRefershTask( void *pvParameters )
 {
+	Dir_TypeDef  i;
+	u32 temp;
 	portTickType xLastWakeTime;
 	xLastWakeTime = xTaskGetTickCount();
 	
 	for(;;)
 	{
-		/* convert the ADC value (from 0 to 0xFFF) to a voltage value (from 0V to 3.3V)*/
-		ADC3ConvertedVoltage = ADC3ConvertedValue *3300/0xFFF;
-		DebugPrintf("%i\n", ADC3ConvertedVoltage);
-
-		vTaskDelayUntil( &xLastWakeTime, 500 / portTICK_RATE_MS );
+	/* convert the ADC value (from 0 to 0xFFF) to a voltage value (from 0V to 3.3V)*/
+		for(i=DirMin;i<DirMax;i++){
+			temp = ADCx_Buffer[i] *3300/0xFFF;
+			DebugPrintf("%i\n", temp);
+		}
+		DebugPrintf("\n");
+	
+	vTaskDelayUntil( &xLastWakeTime, 500 / portTICK_RATE_MS );
 	}
 }
 
 void AdcInitialise(void)
 {
-	/* ADC3 configuration *******************************************************/
-	/*  - Enable peripheral clocks                                              */
-	/*  - DMA2_Stream0 channel2 configuration                                   */
-	/*  - Configure ADC Channel12 pin as analog input                           */
-	/*  - Configure ADC3 Channel12                                              */
+	/* ADC1 configuration *******************************************************/
 	ADC_InitTypeDef       ADC_InitStructure;
 	ADC_CommonInitTypeDef ADC_CommonInitStructure;
 	DMA_InitTypeDef       DMA_InitStructure;
 	GPIO_InitTypeDef      GPIO_InitStructure;
 	
-	/* Enable ADC3, DMA2 and GPIO clocks ****************************************/
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA2 | RCC_AHB1Periph_GPIOC, ENABLE);
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC3, ENABLE);
+	/* Enable ADC1, DMA2 and GPIO clocks ****************************************/
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA2 | RCC_AHB1Periph_GPIOA 
+                         | RCC_AHB1Periph_GPIOB, ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
 	
 	/* DMA2 Stream0 channel0 configuration **************************************/
-	DMA_InitStructure.DMA_Channel = DMA_Channel_2;  
-	DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)ADC3_DR_ADDRESS;
-	DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)&ADC3ConvertedValue;
+	DMA_InitStructure.DMA_Channel = DMA_Channel_0;  
+	DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)(&ADCx->DR);
+	DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)&ADCx_Buffer;
 	DMA_InitStructure.DMA_DIR = DMA_DIR_PeripheralToMemory;
-	DMA_InitStructure.DMA_BufferSize = 1;
+	DMA_InitStructure.DMA_BufferSize = ADCx_BUFFER_SIZE;
 	DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
-	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Disable;
+	DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
 	DMA_InitStructure.DMA_PeripheralDataSize = DMA_PeripheralDataSize_HalfWord;
 	DMA_InitStructure.DMA_MemoryDataSize = DMA_MemoryDataSize_HalfWord;
 	DMA_InitStructure.DMA_Mode = DMA_Mode_Circular;
@@ -78,11 +80,21 @@ void AdcInitialise(void)
 	DMA_Init(DMA2_Stream0, &DMA_InitStructure);
 	DMA_Cmd(DMA2_Stream0, ENABLE);
 	
-	/* Configure ADC3 Channel12 pin as analog input ******************************/
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;
+	/* Configure ADC1 Channel12 pin as analog input ******************************/
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL ;
-	GPIO_Init(GPIOC, &GPIO_InitStructure);
+  
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1;
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
+  
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
+  
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
+  
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0;
+	GPIO_Init(GPIOB, &GPIO_InitStructure);
 	
 	/* ADC Common Init **********************************************************/
 	ADC_CommonInitStructure.ADC_Mode = ADC_Mode_Independent;
@@ -91,27 +103,30 @@ void AdcInitialise(void)
 	ADC_CommonInitStructure.ADC_TwoSamplingDelay = ADC_TwoSamplingDelay_5Cycles;
 	ADC_CommonInit(&ADC_CommonInitStructure);
 	
-	/* ADC3 Init ****************************************************************/
+	/* ADC1 Init ****************************************************************/
 	ADC_InitStructure.ADC_Resolution = ADC_Resolution_12b;
-	ADC_InitStructure.ADC_ScanConvMode = DISABLE;
+	ADC_InitStructure.ADC_ScanConvMode = ENABLE;
 	ADC_InitStructure.ADC_ContinuousConvMode = ENABLE;
 	ADC_InitStructure.ADC_ExternalTrigConvEdge = ADC_ExternalTrigConvEdge_None;
 	ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
-	ADC_InitStructure.ADC_NbrOfConversion = 1;
-	ADC_Init(ADC3, &ADC_InitStructure);
+	ADC_InitStructure.ADC_NbrOfConversion = 4;
+	ADC_Init(ADCx, &ADC_InitStructure);
 	
-	/* ADC3 regular channel12 configuration *************************************/
-	ADC_RegularChannelConfig(ADC3, ADC_Channel_12, 1, ADC_SampleTime_3Cycles);
+	/* ADC1 regular channel configuration *************************************/
+	ADC_RegularChannelConfig(ADCx, ADC_Channel_1, 1, ADC_SampleTime_480Cycles);
+	ADC_RegularChannelConfig(ADCx, ADC_Channel_2, 2, ADC_SampleTime_480Cycles);
+	ADC_RegularChannelConfig(ADCx, ADC_Channel_8, 3, ADC_SampleTime_480Cycles);
+	ADC_RegularChannelConfig(ADCx, ADC_Channel_3, 4, ADC_SampleTime_480Cycles);
 	
 	/* Enable DMA request after last transfer (Single-ADC mode) */
-	ADC_DMARequestAfterLastTransferCmd(ADC3, ENABLE);
+	ADC_DMARequestAfterLastTransferCmd(ADCx, ENABLE);
 	
-	/* Enable ADC3 DMA */
-	ADC_DMACmd(ADC3, ENABLE);
+	/* Enable ADC1 DMA */
+	ADC_DMACmd(ADCx, ENABLE);
 	
-	/* Enable ADC3 */
-	ADC_Cmd(ADC3, ENABLE);
+	/* Enable ADC1 */
+	ADC_Cmd(ADCx, ENABLE);
 
-	/* Start ADC3 Software Conversion */ 
-	ADC_SoftwareStartConv(ADC3);
+	/* Start ADC1 Software Conversion */ 
+	ADC_SoftwareStartConv(ADCx);
 }
