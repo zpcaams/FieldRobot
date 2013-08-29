@@ -243,6 +243,41 @@ void GetMotorType (DriverMsg_TypeDef *DriverMsg)
 	DriverSendCmd(DriverMsg);
 }
 
+void SetDriverAdr (DriverMsg_TypeDef *DriverMsg)
+{
+	DriverMsg->Len = 6;
+	DriverMsg->Cmd = MLDS_SADR;
+	DriverSendCmd(DriverMsg);
+}
+
+void GetDriverAdr (DriverMsg_TypeDef *DriverMsg)
+{
+	DriverMsg->Len = 4;
+	DriverMsg->Cmd = MLDS_GADR;
+	DriverSendCmd(DriverMsg);
+}
+
+void SaveParameter (DriverMsg_TypeDef *DriverMsg)
+{
+	DriverMsg->Len = 6;
+	DriverMsg->Cmd = MLDS_ESA;
+	DriverSendCmd(DriverMsg);
+}
+
+void SetDriverMode (DriverMsg_TypeDef *DriverMsg)
+{
+	DriverMsg->Len = 8;
+	DriverMsg->Cmd = MLDS_SMOD;
+	DriverSendCmd(DriverMsg);
+}
+
+void GetDriverMode (DriverMsg_TypeDef *DriverMsg)
+{
+	DriverMsg->Len = 8;
+	DriverMsg->Cmd = MLDS_GMOD;
+	DriverSendCmd(DriverMsg);
+}
+
 void DriverSelfTest(void)
 {
 	Dir_TypeDef Dir;

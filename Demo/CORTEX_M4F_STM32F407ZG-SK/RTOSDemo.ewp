@@ -1111,6 +1111,9 @@
         <name>$PROJ_DIR$\User\robot_position.c</name>
       </file>
       <file>
+        <name>$PROJ_DIR$\User\robot_putter.c</name>
+      </file>
+      <file>
         <name>$PROJ_DIR$\User\robot_remote_control.c</name>
       </file>
     </group>

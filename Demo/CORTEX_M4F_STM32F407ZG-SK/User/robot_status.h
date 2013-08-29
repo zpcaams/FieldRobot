@@ -18,10 +18,10 @@
 /* Robot includes */
 #include "robot_common.h"
 #include "robot_remote_control.h"
+#include "robot_putter.h"
 #include "robot_driver.h"
 #include "robot_move.h"
 #include "robot_test.h"
-#include "robot_spi.h"
 #include "robot_adc.h"
  
 /************************** Constant Definitions *****************************/

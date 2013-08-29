@@ -31,7 +31,8 @@ typedef enum
 {
 	WM_BASE	= 4,
 	SM_BASE	= 8,
-	EP_BASE	= 12
+	EP_BASE	= 12,
+	DEFUALT_BASE = 127
 } IdBase_TypeDef;
 
 /* ÂÖì±µç»ú */
@@ -73,6 +74,7 @@ typedef struct
 		u8 			U8[4];
 		s32			S32;
 		s16			S16;
+		u16			U16;
 	}TxData;		/* TxData */
 	union{
 		u8 			U8[4];
@@ -98,6 +100,12 @@ void SetMotorMove (DriverMsg_TypeDef *DriverMsg);
 void GetMotorPos (DriverMsg_TypeDef *DriverMsg);
 void SetMotorPWM (DriverMsg_TypeDef *DriverMsg);
 void GetMotoType (DriverMsg_TypeDef *DriverMsg);
+
+void SetDriverAdr (DriverMsg_TypeDef *DriverMsg);
+void GetDriverAdr (DriverMsg_TypeDef *DriverMsg);
+void SaveParameter (DriverMsg_TypeDef *DriverMsg);
+void SetDriverMode (DriverMsg_TypeDef *DriverMsg);
+void GetDriverMode (DriverMsg_TypeDef *DriverMsg);
 
 #ifdef __cplusplus
 }
