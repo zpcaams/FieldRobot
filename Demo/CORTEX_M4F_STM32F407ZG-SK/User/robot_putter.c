@@ -55,11 +55,13 @@ void RobotHeightTask (void *pvParameters)
     for( ; ; )
     {
         /* calculate the PWM here */
-    	PWM = (GetRemoteControl(2-1)-1440)*100/4;
-		if((PWM<5000)&&(PWM>-5000)){
+    	PWM = (GetRemoteControl(2-1)-1440)/4;
+		if((PWM<50)&&(PWM>-50)){
 			PWM = 0;
-		}else if(PWM>10000){
-			PWM = 10000;
+		}else if(PWM>100){
+			PWM = 100;
+		}else if(PWM<-100){
+			PWM = -100;
 		}
 		DebugPrintf("PWM %i\n", PWM);
 
@@ -70,7 +72,7 @@ void RobotHeightTask (void *pvParameters)
 				Position[Dir] += ADCx_Buffer[Dir+j*DirMax];
 			}
 			Position[Dir] = Position[Dir] /(AVERAGE_NUM);
-			DebugPrintf("Dir %i Pos %i\n", Dir, Position[Dir]);
+//			DebugPrintf("Dir %i Pos %i\n", Dir, Position[Dir]);
 		}
 		
 	    /* Send Command to Driver */	

@@ -77,8 +77,8 @@ SEND_CAN_MSG:
 			(CANRxMessage.Data[3]==MLDS_ACK)){
 			for(i=0;i<(CANRxMessage.Data[0]-4);i++){
 				DriverMsg->RxData.U8[i] = CANRxMessage.Data[i+4];
-    			return;
 			}
+			return;
 		}
 	}
 	goto SEND_CAN_MSG;

@@ -31,6 +31,7 @@
 #include "stm32f4xx_it.h"
 #include "robot_common.h"
 #include "robot_spi.h"
+#include "robot_can.h"
 
 /** @addtogroup STM32F4xx_StdPeriph_Examples
   * @{

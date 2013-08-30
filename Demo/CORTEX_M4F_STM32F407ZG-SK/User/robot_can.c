@@ -13,31 +13,6 @@
 
 /************************** Constant Definitions *****************************/
 
-/* #define USE_CAN1*/
-#define USE_CAN1
-
-#ifdef  USE_CAN1
-  #define CANx                       CAN1
-  #define CAN_CLK                    RCC_APB1Periph_CAN1
-  #define CAN_RX_PIN                 GPIO_Pin_8
-  #define CAN_TX_PIN                 GPIO_Pin_9
-  #define CAN_GPIO_PORT              GPIOB
-  #define CAN_GPIO_CLK               RCC_AHB1Periph_GPIOB
-  #define CAN_AF_PORT                GPIO_AF_CAN1
-  #define CAN_RX_SOURCE              GPIO_PinSource8
-  #define CAN_TX_SOURCE              GPIO_PinSource9       
-#else /*USE_CAN2*/
-  #define CANx                       CAN2
-  #define CAN_CLK                    (RCC_APB1Periph_CAN1 | RCC_APB1Periph_CAN2)
-  #define CAN_RX_PIN                 GPIO_Pin_5
-  #define CAN_TX_PIN                 GPIO_Pin_13
-  #define CAN_GPIO_PORT              GPIOB
-  #define CAN_GPIO_CLK               RCC_AHB1Periph_GPIOB
-  #define CAN_AF_PORT                GPIO_AF_CAN2
-  #define CAN_RX_SOURCE              GPIO_PinSource5
-  #define CAN_TX_SOURCE              GPIO_PinSource13    
-#endif  /* USE_CAN1 */
-
 /**************************** Type Definitions *******************************/
 
 /***************** Macros (Inline Functions) Definitions *********************/
@@ -158,11 +133,15 @@ void CANInitialise(void)
   CAN_Init(CANx, &CAN_InitStructure);
 
   /* CAN filter init */
+  /*
+   * SDTID[10:0] + EXTID[17:13]
+   * EXTID[12:0] + IDE + RTR + 0;
+   */
   CAN_FilterInitStructure.CAN_FilterNumber = 0;
-  CAN_FilterInitStructure.CAN_FilterMode = CAN_FilterMode_IdMask;
+  CAN_FilterInitStructure.CAN_FilterMode = CAN_FilterMode_IdList;
   CAN_FilterInitStructure.CAN_FilterScale = CAN_FilterScale_32bit;
-  CAN_FilterInitStructure.CAN_FilterIdHigh = 0x0000;
-  CAN_FilterInitStructure.CAN_FilterIdLow = 0x0000;
+  CAN_FilterInitStructure.CAN_FilterIdHigh = 0x1<<5;
+  CAN_FilterInitStructure.CAN_FilterIdLow = (CAN_ID_STD<<2 + CAN_RTR_DATA<<1);
   CAN_FilterInitStructure.CAN_FilterMaskIdHigh = 0x0000;
   CAN_FilterInitStructure.CAN_FilterMaskIdLow = 0x0000;
   CAN_FilterInitStructure.CAN_FilterFIFOAssignment = 0;
