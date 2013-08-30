@@ -91,9 +91,9 @@ static u8 Spi_RxBuffer[SPIx_DMA_BUFFER_SIZE];
 * @note		None
 *
 ******************************************************************************/
-void GetSpiBuffer(u8 *pBuffer)
+u16 GetSpiBuffer(u8 Addr)
 {
-	pBuffer = Spi_RxBuffer;
+  return *(u16 *)(&Spi_RxBuffer[(Addr*3)+1]);
 }
 
 /*****************************************************************************/

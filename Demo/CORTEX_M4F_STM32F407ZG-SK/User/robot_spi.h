@@ -39,7 +39,7 @@
 
 /************************** Function Prototypes ******************************/
 
-void GetSpiBuffer(u8 *pBuffer);
+u16 GetSpiBuffer(u8 Addr);
 void SpiRefershTask( void *pvParameters );
 void SPISelfTest(void);
 void SpiInitialise(void);

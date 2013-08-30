@@ -33,14 +33,11 @@ const	static	u16	RemoteControlDefault[8] ={
 //	Channel 8~15 	2.4G remote control
 u16 GetRemoteControl(u8 Channel)
 {
-	u8 *pBuf=NULL;
-	s16 Value;
+	u16 Value;
 	
-	GetSpiBuffer(pBuf);
-	Value = *(u16 *)(pBuf+((Channel-8)*3)+1);
+	Value = GetSpiBuffer(Channel+8);
 	
 	if((Value>1000)&&(Value<2000)){
-		DebugPrintf("Ch %i %i\n", (Channel+1), Value);
 		return Value;
 	}else{
 		return RemoteControlDefault[Channel];

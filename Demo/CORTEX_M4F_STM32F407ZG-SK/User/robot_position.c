@@ -30,24 +30,20 @@ const static s16 CouplingsPosAdj[DirMax] = {
 //	Channel 0~3 	Steering Motor Position Encoder
 s32 GetSterringMotorPosition(Dir_TypeDef Direction)
 {
-	u8 *pBuf=NULL;
 	s32 Value;
-	
-	GetSpiBuffer(pBuf);
-	Value = *(u16 *)(pBuf+(Direction*3)+1);
-	Value += SterringMotorPosAdj[Direction];
-	Value += GetCouplingsPosition(Direction);
+
+	Value = GetSpiBuffer((u8)Direction)
+			+ SterringMotorPosAdj[Direction]
+			+ GetCouplingsPosition(Direction);
 	return Value;
 }
 
 //	Channel 4~7 	Couplings Position Encoder
 s32 GetCouplingsPosition(Dir_TypeDef Direction)
 {
-	u8 *pBuf=NULL;
 	s32 Value;
-	
-	GetSpiBuffer(pBuf);
-	Value = *(u16 *)(pBuf+((Direction-4)*3)+1);
-	Value += CouplingsPosAdj[Direction];
+
+	Value = GetSpiBuffer((u8)(Direction+4))
+			+ CouplingsPosAdj[Direction];
 	return Value;
 }
