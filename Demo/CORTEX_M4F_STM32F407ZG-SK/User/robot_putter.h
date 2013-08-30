@@ -16,7 +16,9 @@
 /***************************** Include Files *********************************/
 
 #include "robot_common.h"
+#include "robot_status.h"
 #include "robot_driver.h"
+#include "robot_adc.h"
 
 /************************** Constant Definitions *****************************/
 
@@ -25,6 +27,11 @@
 /***************** Macros (Inline Functions) Definitions *********************/
 
 /************************** Function Prototypes ******************************/
+
+void EnterRobotHeightStatus (void);
+void EnterRobotHeightStopStatus (void);
+void RobotHeightTask (void *pvParameters);
+void RobotHeightStopTask (void *pvParameters);
 
 void SetUpPutterDriver(void);
 

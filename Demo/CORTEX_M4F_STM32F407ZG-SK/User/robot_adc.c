@@ -16,8 +16,6 @@
 /************************** Constant Definitions *****************************/
 
 #define	ADCx  ADC1
-#define	AVERAGE_NUM	32
-#define	ADCx_BUFFER_SIZE	(DirMax*AVERAGE_NUM)
 
 /**************************** Type Definitions *******************************/
 

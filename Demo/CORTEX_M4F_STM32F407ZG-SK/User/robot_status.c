@@ -99,11 +99,11 @@ void RobotMainTask (void *pvParameters)
         		xStatus = xSemaphoreTake(RobotStatusSemaphore, 100/portTICK_RATE_MS);
         	}while(xStatus==pdTRUE);
 #endif
-        	SetUpPutterDriver();
+//        	SetUpPutterDriver();
 
-        	DebugPrintf("Create ADC Refersh Task\n");
-        	xTaskCreate( AdcRefershTask, ( signed char * ) "PosInit",
-        			configMINIMAL_STACK_SIZE, NULL, AdcRefersh_TASK_PRIORITY, NULL );
+//        	DebugPrintf("Create ADC Refersh Task\n");
+//        	xTaskCreate( AdcRefershTask, ( signed char * ) "PosInit",
+//        			configMINIMAL_STACK_SIZE, NULL, AdcRefersh_TASK_PRIORITY, NULL );
         	
         	DebugPrintf("Robot Initialize Done!\n");
         	RobotStatus = ROBOT_IDLE;
@@ -140,7 +140,7 @@ void RobotMainTask (void *pvParameters)
 						RobotStatus = ROBOT_ROLL;
 						DebugPrintf("Switch to MODE_ROLL\n");
 					}else if(ModeSellect<MODE_HEIGHT){
-						RobotStatus = ROBOT_HEIGHT;
+						EnterRobotHeightStatus();
 						DebugPrintf("Switch to MODE_HEIGHT\n");
 					}else if(ModeSellect<MODE_HEIGHT){
 						RobotStatus = ROBOT_WIDTH;
@@ -187,6 +187,14 @@ void RobotMainTask (void *pvParameters)
     		case ROBOT_HEIGHT:
     			
 				if(MainSwitchOff){
+					EnterRobotHeightStopStatus();
+					DebugPrintf("Switch to ROBOT_HEIGHT_STOP\n");
+				}
+    			break;
+    			
+    		case ROBOT_HEIGHT_STOP:
+    			
+				if(RobotBusy==0){
 					RobotStatus = ROBOT_IDLE;
 					DebugPrintf("Switch to ROBOT_IDLE\n");
 				}

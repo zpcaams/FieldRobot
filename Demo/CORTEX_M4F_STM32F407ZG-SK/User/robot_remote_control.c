@@ -40,6 +40,7 @@ u16 GetRemoteControl(u8 Channel)
 	Value = *(u16 *)(pBuf+((Channel-8)*3)+1);
 	
 	if((Value>1000)&&(Value<2000)){
+		DebugPrintf("Ch %i %i\n", (Channel+1), Value);
 		return Value;
 	}else{
 		return RemoteControlDefault[Channel];
