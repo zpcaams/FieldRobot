@@ -34,12 +34,23 @@ const	static	u16	RemoteControlDefault[8] ={
 u16 GetRemoteControl(u8 Channel)
 {
 	u16 Value;
-	
+	u16 Temp;
+
 	Value = GetSpiBuffer(Channel+8);
 	
-	if((Value>1000)&&(Value<2000)){
-		return Value;
+	if(Channel==(6-1)){
+		/* Special Channel 6, 0~150 */
+		Temp = (GetSpiBuffer(3+8));
+		if((Temp>1190)&&(Temp<1740)){
+			return (Value-Temp+75);
+		}else{
+			return 0;
+		}
 	}else{
-		return RemoteControlDefault[Channel];
+		if((Value>1030)&&(Value<1890)){
+			return Value;
+		}else{
+			return RemoteControlDefault[Channel];
+		}
 	}
 }

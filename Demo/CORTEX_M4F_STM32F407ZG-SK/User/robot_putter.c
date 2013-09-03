@@ -43,7 +43,8 @@ void EnterRobotHeightStopStatus (void)
 void RobotHeightTask (void *pvParameters)
 {
 	Dir_TypeDef  Dir;
-	s16 RemoteControl;
+	s16 PWM_SetUp;
+	u16 PosSetUp;
 	s16 PWM[DirMax];
 	u32 Position[DirMax];
 	u8 j;
@@ -56,17 +57,23 @@ void RobotHeightTask (void *pvParameters)
     for( ; ; )
     {
         /* calculate the PWM here */
-    	RemoteControl = (GetRemoteControl(2-1)-1440)/4;
-		if((RemoteControl<50)&&(RemoteControl>-50)){
-			RemoteControl = 0;
-		}else if(RemoteControl>100){
-			RemoteControl = 100;
-		}else if(RemoteControl<-100){
-			RemoteControl = -100;
+    	PWM_SetUp = (GetRemoteControl(2-1)-1440)/4;
+		if((PWM_SetUp<50)&&(PWM_SetUp>-50)){
+			PWM_SetUp = 0;
+		}else if(PWM_SetUp>100){
+			PWM_SetUp = 100;
+		}else if(PWM_SetUp<-100){
+			PWM_SetUp = -100;
 		}
 //		DebugPrintf("%i\n", PWM);
 
-	    /* Calculate the Position here */	
+	    /* 
+	     * Calculate the Position Setup here
+	     * 0-840
+	     */
+		PosSetUp = (GetRemoteControl(5-1)-1040)+300;
+		
+	    /* Calculate the Position here */
 		for(Dir=DirMin;Dir<DirMax;Dir++){
 			Position[Dir] = 0;
 			for(j=0;j<AVERAGE_NUM;j++){
@@ -74,15 +81,26 @@ void RobotHeightTask (void *pvParameters)
 			}
 			Position[Dir] = Position[Dir] /(AVERAGE_NUM);
 			
-			PWM[Dir] = RemoteControl;
-			if((Position[Dir]<300)&&(RemoteControl<0)){
+			PWM[Dir] = PWM_SetUp;
+
+			/*
+			 * Change Position by SetUp
+			 */
+			if((Position[Dir]<(PosSetUp-0))&&(PWM_SetUp<0)){
 				PWM[Dir] = 0;
-			}else if((Position[Dir]>900)&&(RemoteControl>0)){
+			}else if((Position[Dir]>(PosSetUp-10))&&(PWM_SetUp>0)){
 				PWM[Dir] = 0;
 			}
-//			DebugPrintf("Dir %i Pos %i\n", Dir, Position[Dir]);
+			
+			/*
+			 * Position Limitation
+			 */			
+			if((Position[Dir]<300)&&(PWM_SetUp<0)){
+				PWM[Dir] = 0;
+			}else if((Position[Dir]>900)&&(PWM_SetUp>0)){
+				PWM[Dir] = 0;
+			}
 		}
-		
 		
 	    /* Send Command to Driver */	
 		pDriverMsg->Base = EP_BASE;

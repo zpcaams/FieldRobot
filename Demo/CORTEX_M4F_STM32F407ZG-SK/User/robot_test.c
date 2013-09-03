@@ -27,15 +27,6 @@
 extern u8						RobotStatus;
 extern u16						RemoteControl[8];
 
-u8 CouplingsSellect (void)
-{
-	if((GetRemoteControl(3-1)>1189)&&(GetRemoteControl(3-1)<1742)){
-		return (GetRemoteControl(6-1)-GetRemoteControl(3-1)+75);
-	}else{
-		return 0;
-	}
-}
-
 void EnterRobotTestStatus (void)
 {
 	RobotStatus = ROBOT_TEST;
@@ -55,7 +46,7 @@ void RobotTestTask (void *pvParameters)
 
     for( ; ; )
     {
-		temp = CouplingsSellect();
+		temp = GetRemoteControl(6-1);
 		
     	if(temp<25){
     		CouplingsOff();
