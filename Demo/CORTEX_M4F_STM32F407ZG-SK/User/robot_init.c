@@ -61,8 +61,7 @@ void SteeringMotorPosInitTask(void *pvParameters)
 				while(1);
 			}
 		}
-		
-		DebugPrintf("Steering Motor Initialize Done!\n");
+		DebugPrintf("Steering Motor Position Initialize Done!\n");
 		xSemaphoreGive(RobotStatusSemaphore);
 		vTaskDelete(NULL);
 		

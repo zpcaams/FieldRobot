@@ -23,9 +23,9 @@
 /************************** Variable Definitions *****************************/
 
 const static s16 SterringMotorPosAdj[DirMax] = {
-		0, -688, 0, 0};
+		-455, -686, -414, -588};
 const static s16 CouplingsPosAdj[DirMax] = {
-		0, 0, 0, 0};
+		-421, 0, -108, -175};
 
 //	Channel 0~3 	Steering Motor Position Encoder
 s32 GetSterringMotorPosition(Dir_TypeDef Direction)
@@ -45,5 +45,10 @@ s32 GetCouplingsPosition(Dir_TypeDef Direction)
 
 	Value = GetSpiBuffer((u8)(Direction+4))
 			+ CouplingsPosAdj[Direction];
+	if(Value>512){
+		Value -= 1024;
+	}else if(Value<-512){
+		Value += 1024;
+	}
 	return Value;
 }

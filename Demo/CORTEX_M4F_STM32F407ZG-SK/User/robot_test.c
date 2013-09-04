@@ -15,7 +15,9 @@
 #include "robot_test.h"
 
 /************************** Constant Definitions *****************************/
-
+#define TEST_ENCODER
+#define TEST_COUPLINGS
+#define TEST_POSITION
 /**************************** Type Definitions *******************************/
 
 /***************** Macros (Inline Functions) Definitions *********************/
@@ -41,11 +43,25 @@ void EnterRobotTestStopStatus (void)
 void RobotTestTask (void *pvParameters)
 {
     portTickType xLastWakeTime;
-    xLastWakeTime = xTaskGetTickCount();
+    
+#ifdef TEST_COUPLINGS
     u8 temp;
+#endif
+    
+#ifdef TEST_ENCODER
+    u8 i;
+    u16	Encoder[8];
+#endif
 
+#ifdef TEST_POSITION
+	Dir_TypeDef  Dir;
+	s32 SMPos;
+#endif
+	
+    xLastWakeTime = xTaskGetTickCount();
     for( ; ; )
     {
+#ifdef TEST_COUPLINGS
 		temp = GetRemoteControl(6-1);
 		
     	if(temp<25){
@@ -61,13 +77,27 @@ void RobotTestTask (void *pvParameters)
     	}else{
     		CouplingsOff();
     	}
-		
+#endif
+#ifdef TEST_ENCODER
+    	for(i=0;i<8;i++){
+    		Encoder[i] = GetSpiBuffer(i);
+    		DebugPrintf("%i %i\n", i, Encoder[i]);
+    	}
+		DebugPrintf("\n", i, Encoder[i]);
+#endif
+#ifdef TEST_POSITION
+		for(Dir=DirMin;Dir<DirMax;Dir++){
+			SMPos = GetSterringMotorPosition(Dir);
+			DebugPrintf("%i %i\n", Dir, SMPos);
+		}
+		DebugPrintf("\n", i, Encoder[i]);
+#endif
         if(RobotStatus==ROBOT_TEST_STOP){
 			xTaskCreate( RobotTestStopTask, ( signed char * ) "RbtTstStp",
 					configMINIMAL_STACK_SIZE, NULL, RobotTestStop_TASK_PRIORITY, NULL );
 			vTaskDelete(NULL);
         }
-		vTaskDelayUntil( &xLastWakeTime, 100 / portTICK_RATE_MS );
+		vTaskDelayUntil( &xLastWakeTime, 1000 / portTICK_RATE_MS );
     
     }   
 }
@@ -80,7 +110,9 @@ void RobotTestStopTask (void *pvParameters)
 
     for( ; ; )
     {
+#ifdef TEST_COUPLINGS
 		CouplingsOff();
+#endif
 		ResetRoborBusy();
 		vTaskDelete(NULL);
         

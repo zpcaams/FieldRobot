@@ -65,7 +65,7 @@ void RobotMoveTask (void *pvParameters)
     {
         /* calculate the speed here */
 		Speed = (GetRemoteControl(3-1)-1440)/8;
-		if((Speed<5)&&(Speed>-5)){
+		if((Speed<8)&&(Speed>-8)){
 			Speed = 0;
 		}
 		DebugPrintf("Speed %i\n", Speed);
@@ -83,17 +83,20 @@ void RobotMoveTask (void *pvParameters)
 	    Position = -(GetRemoteControl(1-1)-1460);
 		if((Position<5)&&(Position>-5)){
 			Position = 0;
-		}	    
-	    DebugPrintf("Pos %i\n", Position);
-
+		}
 		pDriverMsg->Base = SM_BASE;
 		pDriverMsg->Dir = RightFront;
 		pDriverMsg->TxData.S32 = Position;
-		SetMotorPos (pDriverMsg);
-		GetMotorSpeed (pDriverMsg);
+		SetMotorMove (pDriverMsg);
 		GetMotorCurrent (pDriverMsg);
 		GetMotorTemp (pDriverMsg);
 		GetMotorError (pDriverMsg);
+	    DebugPrintf("E%i S%i G%i C%i\n", 
+	    		GetSterringMotorPosition(RightFront), 
+	    		Position,
+	    		SteeringMotor[RightFront].GM,
+	    		SteeringMotor[RightFront].GC);
+	    
 		
 //		DebugPrintf("RobotMoveTask is running\n");
 		

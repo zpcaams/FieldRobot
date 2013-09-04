@@ -87,18 +87,14 @@ void RobotMainTask (void *pvParameters)
         	DebugPrintf("Create Encoder Refersh Task\n");
         	xTaskCreate( SpiRefershTask, ( signed char * ) "Encoder",
         			configMINIMAL_STACK_SIZE, NULL, Encoder_TASK_PRIORITY, NULL );
-#ifdef VCC48VON
-        	CANSelfTest();
-        	DebugPrintf("CAN SelfTest Done!\n");
 
         	xTaskCreate( SteeringMotorPosInitTask, ( signed char * ) "PosInit",
         			configMINIMAL_STACK_SIZE, NULL, PositionInit_TASK_PRIORITY, NULL );
-        	DebugPrintf("Steering Motor Position Initialize Done!\n");
         	
         	do{
         		xStatus = xSemaphoreTake(RobotStatusSemaphore, 100/portTICK_RATE_MS);
         	}while(xStatus==pdTRUE);
-#endif
+
 //        	SetUpPutterDriver();
 
 //        	DebugPrintf("Create ADC Refersh Task\n");
