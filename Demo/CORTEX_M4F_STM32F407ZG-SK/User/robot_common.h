@@ -30,7 +30,8 @@
 /************************** Constant Definitions *****************************/
 
 #define AdcRefersh_TASK_PRIORITY				    ( tskIDLE_PRIORITY + 4UL )
-	
+#define LedFlash_TASK_PRIORITY				   		( tskIDLE_PRIORITY + 2UL )
+ 
 /**************************** Type Definitions *******************************/
 
  /* Direction Define */
@@ -41,6 +42,7 @@
  	RightFront	= 1,
  	RightBack	= 2,
  	LeftBack	= 3,
+ 	DirAll		= 4,
  	DirMax		= 4
  } Dir_TypeDef;
  

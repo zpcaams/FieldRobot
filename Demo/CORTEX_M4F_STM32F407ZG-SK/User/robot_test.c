@@ -18,6 +18,7 @@
 #define TEST_ENCODER
 #define TEST_COUPLINGS
 #define TEST_POSITION
+#define TEST_LED
 /**************************** Type Definitions *******************************/
 
 /***************** Macros (Inline Functions) Definitions *********************/
@@ -28,6 +29,9 @@
 
 extern u8						RobotStatus;
 extern u16						RemoteControl[8];
+#ifdef TEST_LED
+extern	xQueueHandle xLedQueue;
+#endif
 
 void EnterRobotTestStatus (void)
 {
@@ -46,6 +50,10 @@ void RobotTestTask (void *pvParameters)
     
 #ifdef TEST_COUPLINGS
     u8 temp;
+#endif
+#ifdef TEST_LED
+    u8 temp;
+	Dir_TypeDef Dir;
 #endif
     
 #ifdef TEST_ENCODER
@@ -78,6 +86,7 @@ void RobotTestTask (void *pvParameters)
     		CouplingsOff();
     	}
 #endif
+
 #ifdef TEST_ENCODER
     	for(i=0;i<8;i++){
     		Encoder[i] = GetSpiBuffer(i);
@@ -91,6 +100,26 @@ void RobotTestTask (void *pvParameters)
 			DebugPrintf("%i %i\n", Dir, SMPos);
 		}
 		DebugPrintf("\n", i, Encoder[i]);
+#endif
+
+#ifdef TEST_LED
+		temp = GetRemoteControl(6-1);
+		
+    	if(temp<25){
+    		Dir = DirAll;
+		}else if(temp<50){
+    		Dir = LeftFront;
+    	}else if(temp<75){
+    		Dir = RightFront;
+    	}else if(temp<100){
+    		Dir = RightBack;
+    	}else if(temp<125){
+    		Dir = LeftBack;
+    	}else{
+    		Dir = DirAll;
+    	}
+		DebugPrintf("Dir %i\n", Dir);
+		xQueueSendToBack( xLedQueue, (void *)&Dir, ( portTickType ) 0 );
 #endif
         if(RobotStatus==ROBOT_TEST_STOP){
 			xTaskCreate( RobotTestStopTask, ( signed char * ) "RbtTstStp",

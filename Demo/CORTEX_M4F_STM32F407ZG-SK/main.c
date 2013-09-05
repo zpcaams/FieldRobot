@@ -385,6 +385,9 @@ static void prvSetupHardware( void )
   
   /* Setup the GPIO for Putter. */
   AdcInitialise();
+  
+  /* Setup the GPIO for LED. */
+  LedInitialise();
 	
 	/* Configure the button input.  This configures the interrupt to use the
 	lowest interrupt priority, so it is ok to use the ISR safe FreeRTOS API

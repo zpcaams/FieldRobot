@@ -32,11 +32,13 @@ void LedInitialise(void)
 		STM_EVAL_LEDOff(Led);
 	}
 	xLedQueue = xQueueCreate( 4, sizeof(Dir_TypeDef) );
+	xTaskCreate( LedFlashTask, ( signed char * ) "Led",
+			configMINIMAL_STACK_SIZE, NULL, LedFlash_TASK_PRIORITY, NULL );
 }
 
 void LedFlashTask(void *pvParameters)
 {
-	Dir_TypeDef Dir=DirMax;
+	Dir_TypeDef Dir = DirAll;
     portTickType xLastWakeTime;
 
     xLastWakeTime = xTaskGetTickCount();
@@ -45,31 +47,35 @@ void LedFlashTask(void *pvParameters)
     	switch(Dir){
     	case LeftFront:
     		STM_EVAL_LEDToggle(LED1);
-    		STM_EVAL_LEDToggle(LED4);
-    		STM_EVAL_LEDOff(LED2);
-    		STM_EVAL_LEDOff(LED3);
-    		break;
-    	case RightFront:
-    		STM_EVAL_LEDToggle(LED1);
     		STM_EVAL_LEDToggle(LED2);
     		STM_EVAL_LEDOff(LED3);
+    		STM_EVAL_LEDOff(LED4);
+    		break;
+    	case RightFront:
+    		STM_EVAL_LEDToggle(LED2);
+    		STM_EVAL_LEDToggle(LED3);
+    		STM_EVAL_LEDOff(LED1);
     		STM_EVAL_LEDOff(LED4);
     		break;
     	case RightBack:
-    		STM_EVAL_LEDToggle(LED2);
-    		STM_EVAL_LEDToggle(LED3);
-    		STM_EVAL_LEDOff(LED1);
-    		STM_EVAL_LEDOff(LED4);
-    		break;
-    	case LeftBack:
     		STM_EVAL_LEDToggle(LED3);
     		STM_EVAL_LEDToggle(LED4);
     		STM_EVAL_LEDOff(LED1);
     		STM_EVAL_LEDOff(LED2);
     		break;
+    	case LeftBack:
+    		STM_EVAL_LEDToggle(LED1);
+    		STM_EVAL_LEDToggle(LED4);
+    		STM_EVAL_LEDOff(LED2);
+    		STM_EVAL_LEDOff(LED3);
+    		break;
     	default:
+    		STM_EVAL_LEDToggle(LED1);
+    		STM_EVAL_LEDToggle(LED2);
+    		STM_EVAL_LEDToggle(LED3);
+    		STM_EVAL_LEDToggle(LED4);
     		break;
     	}
-		vTaskDelayUntil( &xLastWakeTime, 1000/portTICK_RATE_MS );
+		vTaskDelayUntil( &xLastWakeTime, 500/portTICK_RATE_MS );
     }
 }

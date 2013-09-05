@@ -22,6 +22,7 @@
 #include "robot_driver.h"
 #include "robot_couplings.h"
 #include "robot_position.h"
+#include "robot_led.h"
 
 /************************** Constant Definitions *****************************/
 	
