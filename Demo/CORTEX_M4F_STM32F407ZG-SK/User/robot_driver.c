@@ -45,6 +45,7 @@ static void DriverSendCmd(DriverMsg_TypeDef *DriverMsg)
 {
 	u8 i;
 	u32 Id;
+	u8 ErrorCounter;
     portBASE_TYPE xStatus;
 	CanTxMsg CANTxMessage;
 	CanRxMsg CANRxMessage;
@@ -66,11 +67,16 @@ static void DriverSendCmd(DriverMsg_TypeDef *DriverMsg)
     }
     
     /* Send CAN Msg */
+    ErrorCounter = 0;
 SEND_CAN_MSG:
+	if(ErrorCounter>4){
+		goto SEND_MSG_FAILED;
+	}
+	
 	xStatus = xQueueSendToBack(xCANTransQueue, &CANTxMessage, 0);
 	
     /* Receive CAN Msg */
-	xStatus = xQueueReceive( xCANRcvQueue, &CANRxMessage, 5/portTICK_RATE_MS);
+	xStatus = xQueueReceive( xCANRcvQueue, &CANRxMessage, 2/portTICK_RATE_MS);
 	if (xStatus==pdPASS){
 		if ((CANRxMessage.Data[1]==Id)&&
 			(CANRxMessage.Data[2]==DriverMsg->Cmd)&&
@@ -81,7 +87,18 @@ SEND_CAN_MSG:
 			return;
 		}
 	}
+	ErrorCounter++;
 	goto SEND_CAN_MSG;
+	
+SEND_MSG_FAILED:
+	/*
+	 * No matter Driver return uncorrect message or
+	 * No message return within 2ms x 4
+	 * We return 3 as error warning.
+	 */
+	DriverMsg->RxData.S16 = 3;
+	return;
+	
 }
 
 /*****************************************************************************/
@@ -291,7 +308,7 @@ void DriverSelfTest(void)
 	 */
 	ErrorCounter = 0;
 WM_TEST_RESET:
-	if(ErrorCounter>10){
+	if(ErrorCounter>4){
 		goto TEST_FAILED;
 	}
 	
@@ -310,7 +327,7 @@ WM_TEST_RESET:
 	 */
 	ErrorCounter = 0;
 SM_TEST_RESET:
-	if(ErrorCounter>10){
+	if(ErrorCounter>4){
 		goto TEST_FAILED;
 	}
 	
@@ -329,7 +346,7 @@ SM_TEST_RESET:
 	 */
 	ErrorCounter = 0;
 PT_TEST_RESET:
-	if(ErrorCounter>10){
+	if(ErrorCounter>4){
 		goto TEST_FAILED;
 	}
 	
@@ -347,8 +364,8 @@ PT_TEST_RESET:
 	return;
 	
 TEST_FAILED:
-	DebugPrintf("Motor Driver %i NOT Found! \
-			Check the Cable and Driver.\n", 
+	DebugPrintf("Motor Driver %i NOT Found!\n", 
 			((u8)(pDriverMsg->Base) + (u8)(pDriverMsg->Dir)));
+	DebugPrintf("Check the Cable and Driver.\n");
 	while(1);
 }
