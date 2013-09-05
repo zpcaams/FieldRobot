@@ -1108,6 +1108,9 @@
         <name>$PROJ_DIR$\User\robot_driver.c</name>
       </file>
       <file>
+        <name>$PROJ_DIR$\User\robot_led.c</name>
+      </file>
+      <file>
         <name>$PROJ_DIR$\User\robot_position.c</name>
       </file>
       <file>
