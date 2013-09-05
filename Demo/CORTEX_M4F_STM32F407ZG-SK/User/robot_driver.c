@@ -281,29 +281,74 @@ void GetDriverMode (DriverMsg_TypeDef *DriverMsg)
 void DriverSelfTest(void)
 {
 	Dir_TypeDef Dir;
-	u8 ErrorCounter = 0;
+	u8 ErrorCounter;
 	DriverMsg_TypeDef DriverMsg;
 	DriverMsg_TypeDef *pDriverMsg = &DriverMsg;	
 
-TEST_RESET:
+
+	/*
+	 * Find All Wheel Motor Driver
+	 */
+	ErrorCounter = 0;
+WM_TEST_RESET:
 	if(ErrorCounter>10){
 		goto TEST_FAILED;
 	}
 	
 	pDriverMsg->Base = WM_BASE;
-	
 	for(Dir=DirMin;Dir<DirMax;Dir++){
 		pDriverMsg->Dir = Dir;
 		GetMotorType(pDriverMsg);
 		if((pDriverMsg->RxData.U16)!=0x4E){
 			ErrorCounter++;
-			goto TEST_RESET;
+			goto WM_TEST_RESET;
 		}
 	}
-	DebugPrintf("CAN Selftest pass!\n");
+
+	/*
+	 * Find All Steering Motor Driver
+	 */
+	ErrorCounter = 0;
+SM_TEST_RESET:
+	if(ErrorCounter>10){
+		goto TEST_FAILED;
+	}
+	
+	pDriverMsg->Base = SM_BASE;
+	for(Dir=DirMin;Dir<DirMax;Dir++){
+		pDriverMsg->Dir = Dir;
+		GetMotorType(pDriverMsg);
+		if((pDriverMsg->RxData.U16)!=0x4E){
+			ErrorCounter++;
+			goto SM_TEST_RESET;
+		}
+	}
+	
+	/*
+	 * Find All Steering Motor Driver
+	 */
+	ErrorCounter = 0;
+PT_TEST_RESET:
+	if(ErrorCounter>10){
+		goto TEST_FAILED;
+	}
+	
+	pDriverMsg->Base = EP_BASE;
+	for(Dir=DirMin;Dir<DirMax;Dir++){
+		pDriverMsg->Dir = Dir;
+		GetMotorType(pDriverMsg);
+		if((pDriverMsg->RxData.U16)!=0x0B){
+			ErrorCounter++;
+			goto PT_TEST_RESET;
+		}
+	}
+	
+	DebugPrintf("All Motor Driver Found!\n");
 	return;
 	
 TEST_FAILED:
-	DebugPrintf("CAN Selftest failed!\n");
+	DebugPrintf("Motor Driver %i NOT Found! \
+			Check the Cable and Driver.\n", 
+			((u8)(pDriverMsg->Base) + (u8)(pDriverMsg->Dir)));
 	while(1);
 }

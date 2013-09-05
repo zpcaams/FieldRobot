@@ -88,6 +88,7 @@ void RobotMainTask (void *pvParameters)
         	xTaskCreate( SpiRefershTask, ( signed char * ) "Encoder",
         			configMINIMAL_STACK_SIZE, NULL, Encoder_TASK_PRIORITY, NULL );
 
+        	DriverSelfTest();
         	xTaskCreate( SteeringMotorPosInitTask, ( signed char * ) "PosInit",
         			configMINIMAL_STACK_SIZE, NULL, PositionInit_TASK_PRIORITY, NULL );
         	

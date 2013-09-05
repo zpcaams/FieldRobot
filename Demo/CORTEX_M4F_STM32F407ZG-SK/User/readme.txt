@@ -16,6 +16,7 @@
 	robot_couplings.c     	联轴器控制
 	robot_debug.c		调试输出
 	robot_driver.c     	电机驱动器控制
+	robot_putter.c		推杆控制
 	robot_position.c	电机位置信息
 	robot_remote_control.c	遥控器信息
 底层--
